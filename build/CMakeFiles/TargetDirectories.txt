@@ -1,0 +1,4 @@
+/home/nkoirala/newVAF/build/CMakeFiles/rebuild_cache.dir
+/home/nkoirala/newVAF/build/CMakeFiles/edit_cache.dir
+/home/nkoirala/newVAF/build/CMakeFiles/main.dir
+/home/nkoirala/newVAF/build/CMakeFiles/newVAF.dir

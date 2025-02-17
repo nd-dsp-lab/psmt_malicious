@@ -1,0 +1,32 @@
+Original Values (first 10): [ 0 1 2 3 5 10 50 80 200 500 ]
+
+
+ auto inverseFunc = [](double x) -> double {  
+        return x / (0.0001 + x); 
+    };
+
+1.
+Output of just applying f(x) = x^2 / (x^2 +1) using 246 degree and in interval -2048 to 2048:
+[ -2.91987e-10 0.00241837 0.00965242 0.0216391 0.0594133 0.225018 1.04088 1.02302 1.03416 1.01558 ]
+
+
+Output of just applying f(x) = x^2 / (x^2 +1) using 118 degree and in interval -2048 to 2048:
+[ 2.23062e-11 0.000562351 0.00224827 0.00505434 0.014002 0.0553034 0.919188 1.21439 1.06875 1.03026 ]
+
+
+2.
+Output after applying first round of DEP with DEP1(2.50, 0.2, 2, squareInverse, cryptoContext):
+[ 1.23322e-09 0.00242242 0.00966491 0.0216321 0.058613 0.179915 0.181273 0.171415 0.177585 0.166871 ]
+
+
+3. 
+Output after scaling by 10. We need to scale by only 10 and not high values because the elements in the edges
+would get bigger and it will later make the Chebyshev approximation inaccurate.
+[ 1.23809e-08 0.0242242 0.0966491 0.216321 0.58613 1.79915 1.81273 1.71415 1.77585 1.66871 ]
+
+4.
+Output after 2nd round DEP: DEP1(2.50, 0.1, 3, scaledValue, cryptoContext):
+[ 1.22226e-08 0.0239755 0.0818099 0.0885404 0.0846128 -0.0242339 -0.0419276 -0.0943666 -0.0218181 -0.0802381 ]
+
+5. Output after Chebyshev of etan for EvalChebyshevCoefficients(derivativeHtanFunc, -0.1, 0.1, 56):
+[ 1 -0.00743381 0.00205519 0.00152853 -0.00172505 -0.00766616 0.00200284 -0.00177161 0.000398903 -0.000715793 ]

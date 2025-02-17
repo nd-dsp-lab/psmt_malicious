@@ -40,7 +40,7 @@ int main() {
     std::vector<double> coeffsInverse = ComputeChebyshevCoeffs(inverseConfig);
 
     // --- File Handling ---
-    std::string dbFilename = "/home/nkoirala/newVAF/data/hashed_chunks.csv";
+    std::string dbFilename = "../data/hashed_chunks.csv";
     std::vector<double> chunks = ChunkReader::readChunks(dbFilename);
     std::cout << "Dataset (first 30 values):" << std::endl;
     for (size_t i = 0; i < 30 && i < chunks.size(); ++i) {
@@ -48,7 +48,7 @@ int main() {
     }
     std::cout << std::endl;
 
-    std::string queryFilename = "/home/nkoirala/newVAF/data/query.csv";
+    std::string queryFilename = "../data/query.csv";
     std::vector<double> query = ChunkReader::readChunks(queryFilename);
     if (query.empty()) {
         std::cerr << "Error: Query file is empty or couldn't be read." << std::endl;

@@ -24,15 +24,25 @@ int main() {
     auto cryptoContext = fheContext.cryptoContext;
     auto publicKey = fheContext.keyPair.publicKey;
 
+    // ----- DEP constants -----------
+    double L = DEPConstants::DEFAULT_L;
+    double R = DEPConstants::DEFAULT_R;
+    int dep_n = DEPConstants::DEFAULT_N;
+
     // --- Chebyshev Parameter Setup ---
+
     ChebyshevConfig htanhConfig {
         [](double x) -> double { return 1 - tanh(pow(100 * x, 2)); },
-        -8.5, 8.5, 58
+        ChebyshevConstants::HTAN_LOWER_BOUND,
+        ChebyshevConstants::HTAN_UPPER_BOUND,
+        ChebyshevConstants::DEFAULT_DEGREE_HTAN
     };
 
     ChebyshevConfig inverseConfig {
         [](double x) -> double { return (pow(x, 2) / (pow(x, 2) + 0.01)); },
-        -17, 17, 246
+        ChebyshevConstants::INVERSE_LOWER_BOUND,
+        ChebyshevConstants::INVERSE_UPPER_BOUND,
+        ChebyshevConstants::DEFAULT_DEGREE_INVERSE
     };
 
 
@@ -78,7 +88,7 @@ int main() {
 
     // DEP1 transformation.
     auto start_dep1 = std::chrono::high_resolution_clock::now();
-    auto transformedValue1 = DEP1(2.59, 17, 5, res1, cryptoContext);
+    auto transformedValue1 = DEP1(L, R, dep_n, res1, cryptoContext);
     auto end_dep1 = std::chrono::high_resolution_clock::now();
     double time_dep1 = std::chrono::duration<double>(end_dep1 - start_dep1).count();
     std::cout << "Time for DEP1 transformation: " << time_dep1 << " s" << std::endl;
@@ -86,7 +96,7 @@ int main() {
     // EvenChebyshevPS inverse operation.
     auto start_inv = std::chrono::high_resolution_clock::now();
     auto squareInverse = EvenChebyshevPS(
-        cryptoContext, transformedValue1, coeffsInverse, -17, 17
+        cryptoContext, transformedValue1, coeffsInverse, ChebyshevConstants::INVERSE_LOWER_BOUND, ChebyshevConstants::INVERSE_UPPER_BOUND
     );
     auto end_inv = std::chrono::high_resolution_clock::now();
     double time_inv = std::chrono::duration<double>(end_inv - start_inv).count();
@@ -105,7 +115,7 @@ int main() {
 
     // Final EvenChebyshevPS transformation.
     auto start_final = std::chrono::high_resolution_clock::now();
-    auto finalResult = EvenChebyshevPS(cryptoContext, squareInverse, coeffsHtan, -8.5, 8.5);
+    auto finalResult = EvenChebyshevPS(cryptoContext, squareInverse, coeffsHtan, ChebyshevConstants::HTAN_LOWER_BOUND, ChebyshevConstants::HTAN_UPPER_BOUND);
     auto end_final = std::chrono::high_resolution_clock::now();
     double time_final = std::chrono::duration<double>(end_final - start_final).count();
     std::cout << "Time for final EvenChebyshevPS: " << time_final << " s" << std::endl;

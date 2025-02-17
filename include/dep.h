@@ -5,6 +5,13 @@
 
 using namespace lbcrypto;
 
+namespace DEPConstants {
+    // Default DEP parameters.
+    static constexpr double DEFAULT_L = 2.59;
+    static constexpr double DEFAULT_R = 17;
+    static constexpr int DEFAULT_N = 5;
+}
+
 // Function to compute B(y) = y + (-4/27) * y^3
 Ciphertext<DCRTPoly> ComputeB(const Ciphertext<DCRTPoly> &y, 
                               const CryptoContext<DCRTPoly> &cryptoContext);

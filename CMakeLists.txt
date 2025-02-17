@@ -46,7 +46,7 @@ endif()
 ##################################################
 # 1) Build a library from demo_256bit.cpp
 ##################################################
-add_library(newVAF
+add_library(psmt_malicious
     ${PROJECT_SOURCE_DIR}/src/evenPS.cpp
     ${PROJECT_SOURCE_DIR}/src/utilsPS.cpp
     ${PROJECT_SOURCE_DIR}/src/dep.cpp
@@ -56,15 +56,15 @@ add_library(newVAF
 )
 
 # Let the library see your include/ folder
-target_include_directories(newVAF PRIVATE
+target_include_directories(psmt_malicious PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 
 # Link OpenFHE with demo_256bit
 if(BUILD_STATIC)
-    target_link_libraries(newVAF PRIVATE ${OpenFHE_STATIC_LIBRARIES})
+    target_link_libraries(psmt_malicious PRIVATE ${OpenFHE_STATIC_LIBRARIES})
 else()
-    target_link_libraries(newVAF PRIVATE ${OpenFHE_SHARED_LIBRARIES})
+    target_link_libraries(psmt_malicious PRIVATE ${OpenFHE_SHARED_LIBRARIES})
 endif()
 
 ##################################################
@@ -80,6 +80,5 @@ target_include_directories(main PRIVATE
 )
 
 # Finally, link main with:
-# - the demo_256bit library (which has runDemo(), etc.)
-# - OpenFHE, if you want to do so here as well
-target_link_libraries(main PRIVATE newVAF)
+
+target_link_libraries(main PRIVATE psmt_malicious)

@@ -243,7 +243,7 @@ int main() {
               << std::endl;
 
      // Compute the sum of all elements in the vector
-    size_t sum = std::accumulate(decryptedValues.begin(), decryptedValues.end(), 0.0);
+    double sum = std::accumulate(decryptedValues.begin(), decryptedValues.end(), 0.0);
 
     std::cout << "Summated value: " << sum << std::endl;
 

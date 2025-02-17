@@ -3,7 +3,9 @@ file(REMOVE_RECURSE
   "CMakeFiles/newVAF.dir/src/dep.cpp.o"
   "CMakeFiles/newVAF.dir/src/evenPS.cpp.o"
   "CMakeFiles/newVAF.dir/src/fhe_init.cpp.o"
+  "CMakeFiles/newVAF.dir/src/tests.cpp.o"
   "CMakeFiles/newVAF.dir/src/utilsPS.cpp.o"
+  "CMakeFiles/newVAF.dir/src/vaf.cpp.o"
   "libnewVAF.a"
   "libnewVAF.pdb"
 )

@@ -52,7 +52,8 @@ add_library(newVAF
     ${PROJECT_SOURCE_DIR}/src/dep.cpp
     ${PROJECT_SOURCE_DIR}/src/chebyshev_config.cpp
     ${PROJECT_SOURCE_DIR}/src/fhe_init.cpp
-
+    ${PROJECT_SOURCE_DIR}/src/vaf.cpp
+    ${PROJECT_SOURCE_DIR}/src/tests.cpp
 )
 
 # Let the library see your include/ folder

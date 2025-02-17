@@ -48,10 +48,10 @@ RM = /usr/bin/cmake -E remove -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/nkoirala/newVAF
+CMAKE_SOURCE_DIR = /home/cpp707/SH/psmt_malicious
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/nkoirala/newVAF/build
+CMAKE_BINARY_DIR = /home/cpp707/SH/psmt_malicious/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -80,9 +80,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/nkoirala/newVAF/build/CMakeFiles /home/nkoirala/newVAF/build/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/cpp707/SH/psmt_malicious/build/CMakeFiles /home/cpp707/SH/psmt_malicious/build/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/nkoirala/newVAF/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/cpp707/SH/psmt_malicious/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -271,6 +271,33 @@ src/main.cpp.s:
 	$(MAKE) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+src/tests.o: src/tests.cpp.o
+
+.PHONY : src/tests.o
+
+# target to build an object file
+src/tests.cpp.o:
+	$(MAKE) -f CMakeFiles/newVAF.dir/build.make CMakeFiles/newVAF.dir/src/tests.cpp.o
+.PHONY : src/tests.cpp.o
+
+src/tests.i: src/tests.cpp.i
+
+.PHONY : src/tests.i
+
+# target to preprocess a source file
+src/tests.cpp.i:
+	$(MAKE) -f CMakeFiles/newVAF.dir/build.make CMakeFiles/newVAF.dir/src/tests.cpp.i
+.PHONY : src/tests.cpp.i
+
+src/tests.s: src/tests.cpp.s
+
+.PHONY : src/tests.s
+
+# target to generate assembly for a file
+src/tests.cpp.s:
+	$(MAKE) -f CMakeFiles/newVAF.dir/build.make CMakeFiles/newVAF.dir/src/tests.cpp.s
+.PHONY : src/tests.cpp.s
+
 src/utilsPS.o: src/utilsPS.cpp.o
 
 .PHONY : src/utilsPS.o
@@ -298,6 +325,33 @@ src/utilsPS.cpp.s:
 	$(MAKE) -f CMakeFiles/newVAF.dir/build.make CMakeFiles/newVAF.dir/src/utilsPS.cpp.s
 .PHONY : src/utilsPS.cpp.s
 
+src/vaf.o: src/vaf.cpp.o
+
+.PHONY : src/vaf.o
+
+# target to build an object file
+src/vaf.cpp.o:
+	$(MAKE) -f CMakeFiles/newVAF.dir/build.make CMakeFiles/newVAF.dir/src/vaf.cpp.o
+.PHONY : src/vaf.cpp.o
+
+src/vaf.i: src/vaf.cpp.i
+
+.PHONY : src/vaf.i
+
+# target to preprocess a source file
+src/vaf.cpp.i:
+	$(MAKE) -f CMakeFiles/newVAF.dir/build.make CMakeFiles/newVAF.dir/src/vaf.cpp.i
+.PHONY : src/vaf.cpp.i
+
+src/vaf.s: src/vaf.cpp.s
+
+.PHONY : src/vaf.s
+
+# target to generate assembly for a file
+src/vaf.cpp.s:
+	$(MAKE) -f CMakeFiles/newVAF.dir/build.make CMakeFiles/newVAF.dir/src/vaf.cpp.s
+.PHONY : src/vaf.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -323,9 +377,15 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/tests.o"
+	@echo "... src/tests.i"
+	@echo "... src/tests.s"
 	@echo "... src/utilsPS.o"
 	@echo "... src/utilsPS.i"
 	@echo "... src/utilsPS.s"
+	@echo "... src/vaf.o"
+	@echo "... src/vaf.i"
+	@echo "... src/vaf.s"
 .PHONY : help
 
 

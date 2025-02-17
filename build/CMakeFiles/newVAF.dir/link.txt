@@ -1,2 +1,2 @@
-/usr/bin/ar qc libnewVAF.a  CMakeFiles/newVAF.dir/src/evenPS.cpp.o CMakeFiles/newVAF.dir/src/utilsPS.cpp.o CMakeFiles/newVAF.dir/src/dep.cpp.o CMakeFiles/newVAF.dir/src/chebyshev_config.cpp.o CMakeFiles/newVAF.dir/src/fhe_init.cpp.o
+/usr/bin/ar qc libnewVAF.a  CMakeFiles/newVAF.dir/src/evenPS.cpp.o CMakeFiles/newVAF.dir/src/utilsPS.cpp.o CMakeFiles/newVAF.dir/src/dep.cpp.o CMakeFiles/newVAF.dir/src/chebyshev_config.cpp.o CMakeFiles/newVAF.dir/src/fhe_init.cpp.o CMakeFiles/newVAF.dir/src/vaf.cpp.o CMakeFiles/newVAF.dir/src/tests.cpp.o
 /usr/bin/ranlib libnewVAF.a

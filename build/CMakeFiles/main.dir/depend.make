@@ -6,6 +6,8 @@ CMakeFiles/main.dir/src/main.cpp.o: ../include/chunk_reader.h
 CMakeFiles/main.dir/src/main.cpp.o: ../include/dep.h
 CMakeFiles/main.dir/src/main.cpp.o: ../include/evenPS.h
 CMakeFiles/main.dir/src/main.cpp.o: ../include/fhe_init.h
+CMakeFiles/main.dir/src/main.cpp.o: ../include/tests.h
+CMakeFiles/main.dir/src/main.cpp.o: ../include/vaf.h
 CMakeFiles/main.dir/src/main.cpp.o: ../src/main.cpp
 CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/binfhe/binfhe-base-params.h
 CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/binfhe/binfhe-base-scheme.h
@@ -141,7 +143,8 @@ CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/inttyp
 CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/memory.h
 CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/openfhebase64.h
 CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/parallel.h
-CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/prng/prng.h
+CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/prng/blake2.h
+CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/prng/blake2engine.h
 CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/serial.h
 CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/serializable.h
 CMakeFiles/main.dir/src/main.cpp.o: /usr/local/include/openfhe/core/utils/sertype.h

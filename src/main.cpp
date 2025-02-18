@@ -13,8 +13,9 @@
 using namespace lbcrypto;
 
 int main() {
-    testPoly();
-    // testPrev();
+    // testHb();
+    // testPoly();
+    testPrev();
 }
 
 // int main() {

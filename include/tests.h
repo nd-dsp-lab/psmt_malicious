@@ -3,5 +3,6 @@
 
 int testPoly();
 int testPrev();
+int testHb();
 
 #endif

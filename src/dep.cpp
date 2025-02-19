@@ -47,7 +47,7 @@ Ciphertext<DCRTPoly> DEP2(double L, double R, int n, double lambd,
         if (i > 0) {            
             cryptoContext->EvalMultInPlace(y, L * coeff);
             } else {
-            cryptoContext->EvalMultInPlace(y, R * coeff / R);
+            cryptoContext->EvalMultInPlace(y, R * coeff);
             }
         y = cryptoContext->EvalMult(y, _tmp);        
         }

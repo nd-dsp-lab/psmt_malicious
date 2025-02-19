@@ -124,7 +124,7 @@ int testPrev() {
 
     // --- FHE Initialization ---
     FHEParams fheParams;
-    fheParams.multiplicativeDepth = 35;
+    fheParams.multiplicativeDepth = 30;
     fheParams.scalingModSize = 35;
     fheParams.firstModSize = 60;
     fheParams.ringDim = 1 << 17;
@@ -185,12 +185,12 @@ int testPrev() {
     // --- Main Cryptographic Computations ---
     auto overallStart = std::chrono::high_resolution_clock::now();
 
-    // DEP1 transformation.
+    // DEP2 transformation.
     auto start_dep1 = std::chrono::high_resolution_clock::now();
-    auto transformedValue1 = DEP1(2.59, 17, 5, res1, cryptoContext);
+    auto transformedValue1 = DEP2(2.58, 17, 5, 27/4, res1, cryptoContext);
     auto end_dep1 = std::chrono::high_resolution_clock::now();
     double time_dep1 = std::chrono::duration<double>(end_dep1 - start_dep1).count();
-    std::cout << "Time for DEP1 transformation: " << time_dep1 << " s" << std::endl;
+    std::cout << "Time for DEP2 transformation: " << time_dep1 << " s" << std::endl;
 
     // EvenChebyshevPS inverse operation.
     auto start_inv = std::chrono::high_resolution_clock::now();
@@ -222,6 +222,9 @@ int testPrev() {
     // Square the final result.
     auto start_sqr = std::chrono::high_resolution_clock::now();
     cryptoContext->EvalSquareInPlace(finalResult);
+    // for (int i = 0; i < 2; i++) {
+    //     finalResult = cleanse(cryptoContext, finalResult);
+    // }
     auto end_sqr = std::chrono::high_resolution_clock::now();
     double time_sqr = std::chrono::duration<double>(end_sqr - start_sqr).count();
     std::cout << "Time for squaring: " << time_sqr << " s" << std::endl;

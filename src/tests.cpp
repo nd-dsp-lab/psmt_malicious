@@ -14,8 +14,8 @@ int testPoly() {
 
     // --- FHE Initialization ---
     FHEParams fheParams;
-    fheParams.multiplicativeDepth = 40;
-    fheParams.scalingModSize = 59;
+    fheParams.multiplicativeDepth = 34; // minumum 34 required 
+    fheParams.scalingModSize = 45; // minimum 45 required for correct approximation
     fheParams.firstModSize = 60;
     fheParams.ringDim = 1 << 17;
     
@@ -124,8 +124,8 @@ int testPrev() {
 
     // --- FHE Initialization ---
     FHEParams fheParams;
-    fheParams.multiplicativeDepth = 35;
-    fheParams.scalingModSize = 35;
+    fheParams.multiplicativeDepth = 37;
+    fheParams.scalingModSize = 35; // minimum 32 required for correct approximation
     fheParams.firstModSize = 60;
     fheParams.ringDim = 1 << 17;
     
@@ -222,9 +222,14 @@ int testPrev() {
     // Square the final result.
     auto start_sqr = std::chrono::high_resolution_clock::now();
     cryptoContext->EvalSquareInPlace(finalResult);
+
     auto end_sqr = std::chrono::high_resolution_clock::now();
     double time_sqr = std::chrono::duration<double>(end_sqr - start_sqr).count();
     std::cout << "Time for squaring: " << time_sqr << " s" << std::endl;
+
+    for (int i = 0; i < 1; i++) {
+        finalResult = cleanse(cryptoContext, finalResult);
+    }
 
     auto overallEnd = std::chrono::high_resolution_clock::now();
     double overallTime = std::chrono::duration<double>(overallEnd - overallStart).count();
@@ -235,6 +240,7 @@ int testPrev() {
     Plaintext resultPlain;
     cryptoContext->Decrypt(fheContext.keyPair.secretKey, finalResult, &resultPlain);
     std::vector<double> decryptedValues = resultPlain->GetRealPackedValue();
+    std::cout << "Precision: " << resultPlain->GetLogPrecision() << std::endl;
 
     std::cout << "Decrypted Results (first 20 values): ";
     for (size_t i = 0; i < 20 && i < decryptedValues.size(); ++i) {
@@ -253,7 +259,7 @@ int testHb() {
     std::cout << "Initializing program..." << std::endl;
     // --- FHE Initialization ---
     FHEParams fheParams;
-    fheParams.multiplicativeDepth = 40;
+    fheParams.multiplicativeDepth = 42;
     fheParams.scalingModSize = 59;
     fheParams.firstModSize = 60;
     fheParams.ringDim = 1 << 17;

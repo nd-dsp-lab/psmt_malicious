@@ -2,6 +2,31 @@
 
 using namespace lbcrypto;
 
+
+Ciphertext<DCRTPoly> compVAFDouble(
+    CryptoContext<DCRTPoly> cc,
+    Ciphertext<DCRTPoly> x
+) {
+    Ciphertext<DCRTPoly> _tmp;
+    auto ret = x->Clone();
+
+    // 3x - 1
+    _tmp = cc->EvalAdd(ret, ret);
+    cc->EvalAddInPlace(ret, _tmp);
+    cc->EvalAddInPlace(ret, -1.0);
+    cc->EvalSquareInPlace(ret);    
+
+    // 3x - 4
+    _tmp = cc->EvalAdd(ret, ret);
+    cc->EvalAddInPlace(ret, _tmp);
+    cc->EvalAddInPlace(ret, -4.0);
+    
+    // Divide by 8
+    cc->EvalMultInPlace(ret, 0.125);
+    cc->EvalSquareInPlace(ret);
+    return ret;
+}
+
 Ciphertext<DCRTPoly> compVAFTriple(
     CryptoContext<DCRTPoly> cc,
     Ciphertext<DCRTPoly> x
@@ -69,17 +94,6 @@ Ciphertext<DCRTPoly> compVAFQuad(
     cc->EvalSquareInPlace(ret);
     return ret;
 }
-
-// -1/2 * x^3 + 3/2 * x
-// Ciphertext<DCRTPoly> sign(
-//     CryptoContext<DCRTPoly> cc,
-//     Ciphertext<DCRTPoly> x
-// ) {
-//     // 1/2 * (3 - x^2)
-//     Ciphertext<DCRTPoly> _tmp;
-//     auto ret = x->Clone();
-// }
-
 
 // -2x^3 + 3x^2
 // x^2(3 - 2x)

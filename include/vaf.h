@@ -5,6 +5,11 @@
 
 using namespace lbcrypto;
 
+Ciphertext<DCRTPoly> compVAFDouble(
+    CryptoContext<DCRTPoly> cc,
+    Ciphertext<DCRTPoly> x
+);
+
 Ciphertext<DCRTPoly> compVAFTriple(
     CryptoContext<DCRTPoly> cc,
     Ciphertext<DCRTPoly> x

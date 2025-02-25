@@ -54,6 +54,7 @@ add_library(newVAF
     ${PROJECT_SOURCE_DIR}/src/fhe_init.cpp
     ${PROJECT_SOURCE_DIR}/src/vaf.cpp
     ${PROJECT_SOURCE_DIR}/src/tests.cpp
+    ${PROJECT_SOURCE_DIR}/src/core.cpp
 )
 
 # Let the library see your include/ folder
@@ -84,3 +85,17 @@ target_include_directories(main PRIVATE
 # - the demo_256bit library (which has runDemo(), etc.)
 # - OpenFHE, if you want to do so here as well
 target_link_libraries(main PRIVATE newVAF)
+
+add_executable(main_vaf
+    ${PROJECT_SOURCE_DIR}/src/main_vaf.cpp
+)
+
+# Let main see your include/ folder
+target_include_directories(main_vaf PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+)
+
+# Finally, link main with:
+# - the demo_256bit library (which has runDemo(), etc.)
+# - OpenFHE, if you want to do so here as well
+target_link_libraries(main_vaf PRIVATE newVAF)

@@ -8,6 +8,7 @@
 #include "chebyshev_config.h"
 #include "chunk_reader.h"  // Assumed to provide ChunkReader::readChunks
 #include "vaf.h"
+#include "core.h"
 
 int testPoly() {
     std::cout << "Initializing program..." << std::endl;
@@ -394,5 +395,66 @@ int testHb() {
     double sum = std::accumulate(decryptedValues.begin(), decryptedValues.end(), 0.0);
     std::cout << "Summated value: " << sum << std::endl;
 
+    return 0;
+}
+
+
+int testVAFs(
+    // VAF paramaeters
+    double k, double L, double R, uint32_t n_dep, uint32_t n_vaf, uint32_t n_cleanse, uint32_t depth
+) {
+    std::cout << "Initializing program..." << std::endl;
+    // --- FHE Initialization ---
+    FHEParams fheParams;
+    fheParams.multiplicativeDepth = depth;
+    fheParams.scalingModSize = 50;
+    fheParams.firstModSize = 60;
+    fheParams.ringDim = 1 << 17;
+
+    FHEContext fheContext = InitFHE(fheParams);
+    auto cc = fheContext.cryptoContext;
+    auto publicKey = fheContext.keyPair.publicKey;
+
+    // Setup the dummy values
+    std::vector<double> msgVec(1 << 16, 0.0);
+    double logRange = n_dep * std::log2(L) + std::log2(R);
+    int intRange = 1 << (int)std::floor(n_dep);
+
+    for (double i = 0; i < 65535; i++) {
+        msgVec[i] = intRange - 1;
+    }   
+    msgVec[0] = 0;
+    msgVec[1] = 1;
+    msgVec[2] = -1;
+
+    auto ptxt = cc->MakeCKKSPackedPlaintext(msgVec);
+    auto ctxt = cc->Encrypt(ptxt, publicKey);
+
+    // Start the test 
+    std::cout << "<-------- VAF TEST START ---------->" << std::endl;
+    std::cout << "k: \t\t" << k << std::endl;
+    std::cout << "L: \t\t" << L << std::endl;
+    std::cout << "R: \t\t" << R << std::endl;
+    std::cout << "n_dep: \t\t" << n_dep << std::endl;
+    std::cout << "n_vaf: \t\t" << n_vaf << std::endl;
+    std::cout << "Range (log2): \t" << logRange << std::endl;
+
+    auto start = std::chrono::high_resolution_clock::now();
+    auto ret = fusedVAF(cc, ctxt, k, L, R, n_dep, n_vaf, n_cleanse);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto timeRet = std::chrono::duration<double>(end - start).count();
+    std::cout << "Overall execution time: " << timeRet << " s" << std::endl;
+    std::cout << "Level: " << ret->GetLevel() << std::endl;
+    // Decrypt
+    Plaintext retPtxt;
+    cc->Decrypt(fheContext.keyPair.secretKey, ret, &retPtxt);
+    std::cout << "Precision: " << retPtxt->GetLogPrecision() << std::endl;
+
+    // Get Values and Print Values
+    std::vector<double> retVec = retPtxt->GetRealPackedValue();
+    std::cout << "Print First 20 Values:"  << std::endl;
+    std::cout << std::vector<double>(retVec.begin(), retVec.begin() + 20) << std::endl;
+
+    // Done!
     return 0;
 }

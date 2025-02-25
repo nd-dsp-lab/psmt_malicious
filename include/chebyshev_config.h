@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <functional>
+#include <cstdint>
 
 namespace ChebyshevConstants {
     // Default Chebyshev approximation parameters.

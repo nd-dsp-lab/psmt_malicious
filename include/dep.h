@@ -21,6 +21,10 @@ Ciphertext<DCRTPoly> DEP1(double L, double R, int n,
                           const Ciphertext<DCRTPoly> &x,
                           const CryptoContext<DCRTPoly> &cryptoContext);
 
+Ciphertext<DCRTPoly> DEP2(double L, double R, int n, double lambd,
+                        const Ciphertext<DCRTPoly> &x,
+                            const CryptoContext<DCRTPoly> &cryptoContext);
+
 // Function to compute sign function: f(x) = (3/2) * x - (1/2) * x^3
 Ciphertext<DCRTPoly> signFunc(const Ciphertext<DCRTPoly> &x, 
                               const CryptoContext<DCRTPoly> &cryptoContext);

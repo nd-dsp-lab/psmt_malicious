@@ -1,9 +1,8 @@
 #ifndef TEST_H
 #define TEST_H
 
-int testPoly();
-int testPrev();
-int testHb();
+int testFullNewVAF();
+int testFullPrev();
 
 int testVAFs(
     // VAF paramaeters

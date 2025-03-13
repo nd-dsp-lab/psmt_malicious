@@ -43,9 +43,6 @@ else()
     set(CMAKE_EXE_LINKER_FLAGS "${OpenFHE_EXE_LINKER_FLAGS}")
 endif()
 
-##################################################
-# 1) Build a library from demo_256bit.cpp
-##################################################
 add_library(psmt_malicious
     ${PROJECT_SOURCE_DIR}/src/evenPS.cpp
     ${PROJECT_SOURCE_DIR}/src/utilsPS.cpp
@@ -62,7 +59,7 @@ target_include_directories(psmt_malicious PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 
-# Link OpenFHE with demo_256bit
+# Link OpenFHE 
 if(BUILD_STATIC)
     target_link_libraries(psmt_malicious PRIVATE ${OpenFHE_STATIC_LIBRARIES})
 else()
@@ -70,7 +67,7 @@ else()
 endif()
 
 ##################################################
-# 2) Build the main executable from main.cpp
+# 1) Build the main executable from main.cpp
 ##################################################
 add_executable(main
     ${PROJECT_SOURCE_DIR}/src/main.cpp
@@ -82,23 +79,24 @@ target_include_directories(main PRIVATE
 )
 
 # Finally, link main with:
+target_link_libraries(main PRIVATE psmt_malicious)
 
-# - the demo_256bit library (which has runDemo(), etc.)
-# - OpenFHE, if you want to do so here as well
-target_link_libraries(main PRIVATE newVAF)
+
+##################################################
+# 2) Build the main executable from main_vaf.cpp
+##################################################
 
 add_executable(main_vaf
     ${PROJECT_SOURCE_DIR}/src/main_vaf.cpp
 )
 
-# Let main see your include/ folder
+# Let main_vaf see your include/ folder
 target_include_directories(main_vaf PRIVATE
     ${PROJECT_SOURCE_DIR}/include
 )
 
-# Finally, link main with:
-# - the demo_256bit library (which has runDemo(), etc.)
-# - OpenFHE, if you want to do so here as well
-target_link_libraries(main_vaf PRIVATE newVAF)
+# Finally, link main_vaf:
+
+target_link_libraries(main_vaf PRIVATE psmt_malicious)
 
 

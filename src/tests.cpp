@@ -241,6 +241,7 @@ int testFullPipeline(double sigma, double kappa) {
     int    n_dep  = 0;
     int    n_vaf  = 0;
     int    depth  = 0;
+    bool   isNewVAF = false;
 
     if ((int)sigma == 64){
         if (domain == 2) {
@@ -251,6 +252,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 0;
             n_vaf  = 4;
             depth  = 8 + 10;
+            isNewVAF = false;
         }
         else if (domain == 4) {
             // domain = 4
@@ -260,6 +262,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 0;
             n_vaf  = 7;
             depth  = 11 + 10;
+            isNewVAF = false;
         }
         else if (domain == 16) {
             // domain = 16
@@ -269,6 +272,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 0;
             n_vaf  = 4;
             depth  = 13 + 3;
+            isNewVAF = true;
         }
         else if (domain == 256) {
             // domain = 256
@@ -278,6 +282,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 3;
             n_vaf  = 4;
             depth  = 19 + 3;
+            isNewVAF = true;
         }
         else if (domain == 65536) {
             // domain = 65536
@@ -287,6 +292,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 2;
             n_vaf  = 16;
             depth  = 32 + 3;
+            isNewVAF = true;
         }
         else {
             // Fallback if domain not matched
@@ -298,6 +304,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 0;
             n_vaf  = 1;
             depth  = 1;
+            isNewVAF = false;
         }
     }
     else if ((int)sigma == 128){
@@ -309,6 +316,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 0;
             n_vaf  = 4;
             depth  = 8 + 10;
+            isNewVAF = false;
         }
         else if (domain == 4) {
             // domain = 4
@@ -318,6 +326,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 0;
             n_vaf  = 7;
             depth  = 11 + 15;
+            isNewVAF = false;
         }
         else if (domain == 16) {
             // domain = 16
@@ -327,6 +336,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 0;
             n_vaf  = 4;
             depth  = 13 + 5;
+            isNewVAF = false;
         }
         else if (domain == 256) {
             // domain = 256
@@ -336,6 +346,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 3;
             n_vaf  = 4;
             depth  = 19 + 5;
+            isNewVAF = true;
         }
         else if (domain == 65536) {
             // domain = 65536
@@ -345,6 +356,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 2;
             n_vaf  = 16;
             depth  = 32 + 3;
+            isNewVAF = true;
         }
         else {
             // Fallback if domain not matched
@@ -356,6 +368,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 0;
             n_vaf  = 1;
             depth  = 1;
+            isNewVAF = false;
         }
     }
 
@@ -463,7 +476,7 @@ int testFullPipeline(double sigma, double kappa) {
     for (size_t i = 0; i < encryptedChunks.size(); ++i) {
         encryptedChunks[i] = fusedVAF(
             cryptoContext, encryptedChunks[i], 
-            k, L, R, n_dep, n_vaf, 0
+            k, L, R, n_dep, n_vaf, 0, isNewVAF
     );
     }
     
@@ -554,7 +567,7 @@ int testFullNewVAF() {
     // It takes 25 depths
     ret = fusedVAF(
         cryptoContext, ret, 
-        6.75, 2.59, 91.09, 4, 7, 0
+        6.75, 2.59, 91.09, 4, 7, 0, true
     );
 
     // Rotate & Multiply
@@ -724,7 +737,7 @@ int testFullPrev() {
 // Test code for VAFs Only
 int testVAFs(
     // VAF paramaeters
-    double k, double L, double R, uint32_t n_dep, uint32_t n_vaf, uint32_t n_cleanse, uint32_t depth
+    double k, double L, double R, uint32_t n_dep, uint32_t n_vaf, uint32_t n_cleanse, uint32_t depth, bool isNewVAF
 ) {
     std::cout << "Initializing program..." << std::endl;
     // --- FHE Initialization ---
@@ -741,7 +754,7 @@ int testVAFs(
     // Setup the dummy values
     std::vector<double> msgVec(1 << 16, 0.0);
     double logRange = n_dep * std::log2(L) + std::log2(R);
-    int intRange = 1 << (int)std::floor(n_dep);
+    int intRange = 1 << (int)std::floor(logRange);
 
     for (double i = 0; i < 65535; i++) {
         msgVec[i] = intRange - 1;
@@ -763,7 +776,7 @@ int testVAFs(
     std::cout << "Range (log2): \t" << logRange << std::endl;
 
     auto start = std::chrono::high_resolution_clock::now();
-    auto ret = fusedVAF(cc, ctxt, k, L, R, n_dep, n_vaf, n_cleanse);
+    auto ret = fusedVAF(cc, ctxt, k, L, R, n_dep, n_vaf, n_cleanse, isNewVAF);
     auto end = std::chrono::high_resolution_clock::now();
     auto timeRet = std::chrono::duration<double>(end - start).count();
     std::cout << "Overall execution time: " << timeRet << " s" << std::endl;

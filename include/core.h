@@ -20,7 +20,9 @@ Ciphertext<DCRTPoly> fusedVAF(
     // VAF Parameters
     uint32_t n_vaf,
     // For cleanse
-    uint32_t n_cleanse
+    uint32_t n_cleanse,
+    // NewVAF?
+    bool isNewVAF
 );
 
 #endif

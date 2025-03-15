@@ -2,16 +2,23 @@
 #include "fhe_init.h"
 #include "openfhe.h"
 #include "tests.h"
+#include <iostream>
+#include <cstdlib>
 
-int main() {
-    testVAFs(
-        17,             // k
-        4,              // L
-        4,              // R
-        2,              // n_dep
-        3,              // n_vaf
-        0,              // n_cleanse
-        16              // depth
-    );
+int main(int argc, char* argv[]) {
+     if (argc != 8) {
+        std::cerr << "Usage: " << argv[0] << " <k> <L> <R> <n_dep> <n_vaf> <n_cleanse> <depth>" << std::endl;
+        return 1;
+    }
+
+    int k = std::atoi(argv[1]);
+    int L = std::atoi(argv[2]);
+    int R = std::atoi(argv[3]);
+    int n_dep = std::atoi(argv[4]);
+    int n_vaf = std::atoi(argv[5]);
+    int n_cleanse = std::atoi(argv[6]);
+    int depth = std::atoi(argv[7]);
+
+    testVAFs(k, L, R, n_dep, n_vaf, n_cleanse, depth);
     return 0;
 }

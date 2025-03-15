@@ -1,6 +1,8 @@
 #include <iostream>
 #include <chrono>
 #include <numeric>
+#include <cmath>     // for std::ceil, std::log2
+#include <vector>
 #include "openfhe.h"
 #include "fhe_init.h"
 #include "dep.h"
@@ -9,6 +11,490 @@
 #include "chunk_reader.h"  // Assumed to provide ChunkReader::readChunks
 #include "vaf.h"
 #include "core.h"
+
+
+
+int32_t NextPowerOfTwo(int32_t n) {
+    if (n < 1) return 1;
+    // ceil(log2(n)) gives the exponent of the smallest power-of-two >= n
+    int32_t exp = static_cast<int32_t>(std::ceil(std::log2(n)));
+    return (1 << exp); // 2^exp
+}
+
+void GenerateRotationKeys(CryptoContext<DCRTPoly> cryptoContext,
+                                       PrivateKey<DCRTPoly> secretKey,
+                                       int32_t N) {
+    // 1) Compute the next power of 2 (P) >= N
+    int32_t P = NextPowerOfTwo(N);
+
+    // 2) Generate rotation indices: P/2, P/4, ..., 1
+    std::vector<int32_t> indexList;
+    int32_t step = P / 2;
+    while (step > 0) {
+        indexList.push_back(step);
+        step /= 2;
+    }
+
+    // 3) Generate rotation keys for just these indices
+    cryptoContext->EvalRotateKeyGen(secretKey, indexList);
+
+    // For debugging
+    std::cout << "Rotation indices needed to preserve slots for kappa=" << N << ": ";
+    for (auto idx : indexList) {
+        std::cout << idx << " ";
+    }
+    std::cout << std::endl;
+}
+
+
+Ciphertext<DCRTPoly> preserveSlotZero(
+    Ciphertext<DCRTPoly> ct,              // ciphertext with kappa number of chunks -> kappa must be a power of two
+    CryptoContext<DCRTPoly> cryptoContext,
+    size_t kappa                            
+) {
+    size_t step = kappa >> 1; // half of kappa
+
+    while (step > 0) {
+        // 1) Rotate by step
+        auto rotated = cryptoContext->EvalRotate(ct, step);
+
+        // 2) Multiply => forces the side that lines up with zero to remain zero
+        //    and keeps slot 0 if it's not aligned to zero
+        ct = cryptoContext->EvalMult(ct, rotated);
+
+        step >>= 1; // step = step / 2
+    }
+
+    return ct;
+}
+
+Ciphertext<DCRTPoly> sumAllSlots(Ciphertext<DCRTPoly> ct,
+                                 CryptoContext<DCRTPoly> cryptoContext,
+                                 size_t originalSize) {
+    // 1) Find next power of 2
+    size_t P = NextPowerOfTwo(originalSize);
+
+    // 2) If the ciphertext is already padded to P slots, skip. Otherwise pad it.
+
+    // 3) Start the half-interval and do repeated rotate+add
+    size_t offset = P / 2;
+    while (offset >= 1) {
+        auto rotatedCT = cryptoContext->EvalRotate(ct, offset);
+        ct = cryptoContext->EvalAdd(ct, rotatedCT);
+        offset /= 2; // go to the next half
+    }
+
+    return ct; // slot i, i+originalSize, i+ 2*originalSize, .. now contains the sum
+}
+
+
+/*
+int testFullPipelineBinary() {
+    std::cout << "Initializing program..." << std::endl;
+
+    // --- FHE Initialization ---
+    FHEParams fheParams;
+    fheParams.multiplicativeDepth = 18;
+    fheParams.scalingModSize = 59;
+    fheParams.firstModSize = 60;
+    fheParams.ringDim = 1 << 17;
+    
+    FHEContext fheContext = InitFHE(fheParams);
+    auto cryptoContext = fheContext.cryptoContext;
+    auto publicKey = fheContext.keyPair.publicKey;
+    auto secretKey = fheContext.keyPair.secretKey;
+
+    int kappa = 64; // number of chunks -> The size of active slots 
+    GenerateRotationKeys(cryptoContext, secretKey, kappa);
+
+    size_t slots = fheParams.ringDim/2; // Maximum size per ciphertext in CKKS
+
+    // --- File Handling ---
+    std::string dbFilename = "../data/hashed_chunks_binary.csv";
+    std::vector<double> chunks = ChunkReader::readChunks(dbFilename);
+    std::cout << "Dataset (first 30 values):" << std::endl;
+    for (size_t i = 0; i < 30 && i < chunks.size(); ++i) {
+        std::cout << chunks[i] << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Size of chunks vector: " << chunks.size() << std::endl;
+    std::cout << std::endl;
+
+    std::string queryFilename = "../data/query_binary.csv";
+    std::vector<double> query = ChunkReader::readChunks(queryFilename);
+    if (query.empty()) {
+        std::cerr << "Error: Query file is empty or couldn't be read." << std::endl;
+        return 1;
+    }
+    std::vector<double> expandedQuery(slots);
+    for (size_t i = 0; i < slots; ++i) {
+        expandedQuery[i] = query[i % query.size()];
+    }
+    std::cout << "Expanded query vector (first 30 values):" << std::endl;
+    for (size_t i = 0; i < 30; ++i) {
+        std::cout << expandedQuery[i] << " ";
+    }
+    std::cout << std::endl;
+
+    
+    // --- Encrypt Data -------------------------------------------
+
+    size_t numCiphertexts = (chunks.size() + slots - 1) / slots; // Calculate required ciphertexts
+    std::cout << "Required ciphertexts: " << numCiphertexts << " ciphertexts." << std::endl;
+
+    std::vector<Ciphertext<DCRTPoly>> encryptedChunks;
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (size_t i = 0; i < numCiphertexts; ++i) {
+        size_t startIdx = i * slots;
+        size_t endIdx = std::min(startIdx + slots, chunks.size());
+        std::vector<double> chunkSegment(chunks.begin() + startIdx, chunks.begin() + endIdx);
+        
+        // Pad with 1 if this is the last chunk and not fully filled
+        if (chunkSegment.size() < slots) {
+            chunkSegment.resize(slots, 1.0);
+        }
+        
+        Plaintext dbPlain = cryptoContext->MakeCKKSPackedPlaintext(chunkSegment);
+        Ciphertext<DCRTPoly> dbCipher = cryptoContext->Encrypt(dbPlain, publicKey);
+        encryptedChunks.push_back(dbCipher);
+    }
+
+    Plaintext queryPlain = cryptoContext->MakeCKKSPackedPlaintext(expandedQuery);
+    Ciphertext<DCRTPoly> queryCipher = cryptoContext->Encrypt(queryPlain, publicKey);
+
+    std::cout << "Successfully encrypted " << encryptedChunks.size() << " ciphertexts." << std::endl;
+
+    // ------------------------------------------------------------
+
+
+    // --- Main Cryptographic Computations ---
+    auto overallStart = std::chrono::high_resolution_clock::now();
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (size_t i = 0; i < encryptedChunks.size(); ++i) {
+        encryptedChunks[i] = cryptoContext->EvalSub(queryCipher, encryptedChunks[i]);
+    
+    }
+
+    // #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    // for (size_t i = 0; i < encryptedChunks.size(); ++i) {
+    //     cryptoContext->EvalSquareInPlace(encryptedChunks[i]);
+    // }
+
+    // #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    // for (size_t i = 0; i < encryptedChunks.size(); ++i) {
+    //     encryptedChunks[i] = sumAllSlots(encryptedChunks[i], cryptoContext, kappa);
+    // }
+
+
+    // Compute VAF for all ciphertexts in parallel
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (size_t i = 0; i < encryptedChunks.size(); ++i) {
+        encryptedChunks[i] = fusedVAF(
+            cryptoContext, encryptedChunks[i], 
+            4.5, 2, 1, 0, 4, 0
+    );
+    }
+   
+
+    auto ret = cryptoContext->EvalAddMany(encryptedChunks);
+
+    auto res = preserveSlotZero(ret, cryptoContext, kappa);
+
+    auto overallEnd = std::chrono::high_resolution_clock::now();
+    double overallTime = std::chrono::duration<double>(overallEnd - overallStart).count();
+    std::cout << "Overall execution time: " << overallTime << " s" << std::endl;
+    std::cout << "Level: " << ret->GetLevel() << std::endl;
+
+    // --- Decryption and Final Output ---
+    Plaintext resultPlain;
+    cryptoContext->Decrypt(fheContext.keyPair.secretKey, res, &resultPlain);
+    std::vector<double> decryptedValues = resultPlain->GetRealPackedValue();
+    std::cout << "Precision: " << resultPlain->GetLogPrecision() << std::endl;
+
+    std::cout << "Decrypted Results (first 20 values): ";
+    for (size_t i = 0; i < 20 && i < decryptedValues.size(); ++i) {
+        std::cout << decryptedValues[i] << " ";
+    }
+    std::cout << std::endl;
+
+    double sum = std::accumulate(decryptedValues.begin(), decryptedValues.end(), 0.0);
+    std::cout << "Summated value: " << sum << std::endl;
+
+    return 0;    
+}
+*/
+
+
+int testFullPipeline(double sigma, double kappa) {
+
+    std::cout << "Initializing program..." << std::endl;
+
+    // setting VAF params based on kappa and sigma
+    int exponent = sigma / kappa; // integer division
+    int domain   = 1 << exponent; // 2^exponent
+
+    double k      = 0.0;
+    int    L      = 0;
+    double R      = 0.0;
+    int    n_dep  = 0;
+    int    n_vaf  = 0;
+    int    depth  = 0;
+
+    if ((int)sigma == 64){
+        if (domain == 2) {
+            // domain = 2
+            k      = 4.5;
+            L      = 2;
+            R      = 2;
+            n_dep  = 0;
+            n_vaf  = 4;
+            depth  = 8 + 10;
+        }
+        else if (domain == 4) {
+            // domain = 4
+            k      = 4.5;
+            L      = 2;
+            R      = 4;
+            n_dep  = 0;
+            n_vaf  = 7;
+            depth  = 11 + 10;
+        }
+        else if (domain == 16) {
+            // domain = 16
+            k      = 4.5;
+            L      = 2;
+            R      = 16;
+            n_dep  = 0;
+            n_vaf  = 4;
+            depth  = 13 + 3;
+        }
+        else if (domain == 256) {
+            // domain = 256
+            k      = 17;
+            L      = 4;
+            R      = 4;
+            n_dep  = 3;
+            n_vaf  = 4;
+            depth  = 19 + 3;
+        }
+        else if (domain == 65536) {
+            // domain = 65536
+            k      = 17;
+            L      = 4;
+            R      = 5112.73;
+            n_dep  = 2;
+            n_vaf  = 16;
+            depth  = 32 + 3;
+        }
+        else {
+            // Fallback if domain not matched
+            std::cerr << "No matching VAF parameters for domain = " << domain 
+                    << ". Using default." << std::endl;
+            k      = 1;
+            L      = 1;
+            R      = 1;
+            n_dep  = 0;
+            n_vaf  = 1;
+            depth  = 1;
+        }
+    }
+    else if ((int)sigma == 128){
+        if (domain == 2) {
+            // domain = 2
+            k      = 4.5;
+            L      = 2;
+            R      = 2;
+            n_dep  = 0;
+            n_vaf  = 4;
+            depth  = 8 + 10;
+        }
+        else if (domain == 4) {
+            // domain = 4
+            k      = 4.5;
+            L      = 2;
+            R      = 4;
+            n_dep  = 0;
+            n_vaf  = 7;
+            depth  = 11 + 15;
+        }
+        else if (domain == 16) {
+            // domain = 16
+            k      = 4.5;
+            L      = 2;
+            R      = 16;
+            n_dep  = 0;
+            n_vaf  = 4;
+            depth  = 13 + 5;
+        }
+        else if (domain == 256) {
+            // domain = 256
+            k      = 17;
+            L      = 4;
+            R      = 4;
+            n_dep  = 3;
+            n_vaf  = 4;
+            depth  = 19 + 5;
+        }
+        else if (domain == 65536) {
+            // domain = 65536
+            k      = 17;
+            L      = 4;
+            R      = 5112.73;
+            n_dep  = 2;
+            n_vaf  = 16;
+            depth  = 32 + 3;
+        }
+        else {
+            // Fallback if domain not matched
+            std::cerr << "No matching VAF parameters for domain = " << domain 
+                    << ". Using default." << std::endl;
+            k      = 1;
+            L      = 1;
+            R      = 1;
+            n_dep  = 0;
+            n_vaf  = 1;
+            depth  = 1;
+        }
+    }
+
+    std::cout << "Running the protocol for domain size = " << domain << " bits, and kappa = "
+              << kappa << std::endl;
+    std::cout << "VAF and weakDEP params: k=" << k 
+              << ", L=" << L << ", R=" << R
+              << ", n_dep=" << n_dep << ", n_vaf=" << n_vaf 
+              << ", depth=" << depth << std::endl << std::endl;
+
+
+    // --- FHE Initialization ---
+    FHEParams fheParams;
+    fheParams.multiplicativeDepth = depth;
+    fheParams.scalingModSize = 59;
+    fheParams.firstModSize = 60;
+    fheParams.ringDim = 1 << 17;
+    
+    FHEContext fheContext = InitFHE(fheParams);
+    auto cryptoContext = fheContext.cryptoContext;
+    auto publicKey = fheContext.keyPair.publicKey;
+    auto secretKey = fheContext.keyPair.secretKey;
+
+    GenerateRotationKeys(cryptoContext, secretKey, kappa);
+    size_t slots = fheParams.ringDim/2; // Maximum size per ciphertext in CKKS
+
+
+    // --- File Handling ---
+    std::string dbFilename = "../data/" + std::to_string((int)sigma) + "_bits/hashed_chunks_"
+                             + std::to_string((int)sigma) + "_" + std::to_string((int)kappa) + ".csv";
+
+    std::vector<double> chunks = ChunkReader::readChunks(dbFilename);
+    std::cout << "Dataset (first 30 values):" << std::endl;
+    for (size_t i = 0; i < 30 && i < chunks.size(); ++i) {
+        std::cout << chunks[i] << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "\nSize of chunks vector: " << chunks.size() << std::endl;
+    std::cout << std::endl;
+
+    // Query file
+    std::string queryFilename = "../data/" + std::to_string((int)sigma)
+                                + "_bits/query/hashed_chunks_"
+                                + std::to_string((int)sigma) + "_" 
+                                + std::to_string((int)kappa) + "_query.csv";
+
+    std::vector<double> query = ChunkReader::readChunks(queryFilename);
+    if (query.empty()) {
+        std::cerr << "Error: Query file is empty or couldn't be read." << std::endl;
+        return 1;
+    }
+    std::vector<double> expandedQuery(slots);
+    for (size_t i = 0; i < slots; ++i) {
+        expandedQuery[i] = query[i % query.size()];
+    }
+    std::cout << "Expanded query vector (first 30 values):" << std::endl;
+    for (size_t i = 0; i < 30; ++i) {
+        std::cout << expandedQuery[i] << " ";
+    }
+    std::cout << std::endl;
+
+    
+    // --- Encrypt Data -------------------------------------------
+
+    size_t numCiphertexts = (chunks.size() + slots - 1) / slots; // Calculate required ciphertexts
+    std::vector<Ciphertext<DCRTPoly>> encryptedChunks;
+
+    // Define a fallback value to pad out vectors
+    double dummyValue = (double)domain - 1;
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (size_t i = 0; i < numCiphertexts; ++i) {
+        size_t startIdx = i * slots;
+        size_t endIdx = std::min(startIdx + slots, chunks.size());
+        std::vector<double> chunkSegment(chunks.begin() + startIdx, chunks.begin() + endIdx);
+        
+        // Pad with 255 if this is the last chunk and not fully filled
+        if (chunkSegment.size() < slots) {
+            chunkSegment.resize(slots, dummyValue);
+        }
+        
+        Plaintext dbPlain = cryptoContext->MakeCKKSPackedPlaintext(chunkSegment);
+        Ciphertext<DCRTPoly> dbCipher = cryptoContext->Encrypt(dbPlain, publicKey);
+        encryptedChunks.push_back(dbCipher);
+    }
+
+    Plaintext queryPlain = cryptoContext->MakeCKKSPackedPlaintext(expandedQuery);
+    Ciphertext<DCRTPoly> queryCipher = cryptoContext->Encrypt(queryPlain, publicKey);
+
+    std::cout << "Successfully encrypted " << encryptedChunks.size() << " ciphertexts." << std::endl;
+
+    // ------------------------------------------------------------
+
+
+    // --- Main Cryptographic Computations ---
+    auto overallStart = std::chrono::high_resolution_clock::now();
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (size_t i = 0; i < encryptedChunks.size(); ++i) {
+        encryptedChunks[i] = cryptoContext->EvalSub(queryCipher, encryptedChunks[i]);
+    }
+    
+    // Compute VAF for all ciphertexts in parallel
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (size_t i = 0; i < encryptedChunks.size(); ++i) {
+        encryptedChunks[i] = fusedVAF(
+            cryptoContext, encryptedChunks[i], 
+            k, L, R, n_dep, n_vaf, 0
+    );
+    }
+    
+
+    auto ret = cryptoContext->EvalAddMany(encryptedChunks);
+
+    auto res = preserveSlotZero(ret, cryptoContext, kappa);
+
+    auto overallEnd = std::chrono::high_resolution_clock::now();
+    double overallTime = std::chrono::duration<double>(overallEnd - overallStart).count();
+    std::cout << "Overall execution time: " << overallTime << " s" << std::endl;
+    std::cout << "Level: " << ret->GetLevel() << std::endl;
+
+    // --- Decryption and Final Output ---
+    Plaintext resultPlain;
+    cryptoContext->Decrypt(fheContext.keyPair.secretKey, res, &resultPlain);
+    std::vector<double> decryptedValues = resultPlain->GetRealPackedValue();
+    std::cout << "Precision: " << resultPlain->GetLogPrecision() << std::endl;
+
+    std::cout << "Decrypted Results (first 20 values): ";
+    for (size_t i = 0; i < 20 && i < decryptedValues.size(); ++i) {
+        std::cout << decryptedValues[i] << " ";
+    }
+    std::cout << std::endl;
+
+    double sum = std::accumulate(decryptedValues.begin(), decryptedValues.end(), 0.0);
+    std::cout << "Summated value: " << sum << std::endl;
+
+    return 0;    
+}
+
 
 // Full Pipeline using New VAF
 int testFullNewVAF() {

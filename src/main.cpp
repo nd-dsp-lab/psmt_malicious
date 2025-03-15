@@ -12,6 +12,16 @@
 
 using namespace lbcrypto;
 
-int main() {
-    testFullNewVAF();
+int main(int argc, char* argv[]) {
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <sigma> <kappa>" << std::endl;
+        return 1;
+    }
+
+    double sigma = std::stod(argv[1]);  
+    double kappa = std::stod(argv[2]);  
+
+    testFullPipeline(sigma, kappa);
+
+    return 0;
 }

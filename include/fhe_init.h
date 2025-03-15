@@ -1,9 +1,15 @@
 #ifndef FHE_INIT_H
 #define FHE_INIT_H
 
+#pragma once
+
 #include "openfhe.h"
 #include <cstdint>
 #include <vector>
+
+// Number of threads used in multithreaded sections
+const size_t MAX_NUM_CORES = 48;  // used during the encryption and the VAF operations 
+
 
 // Structure for tunable FHE parameters.
 struct FHEParams {

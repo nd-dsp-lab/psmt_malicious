@@ -3,6 +3,8 @@
 
 int testFullNewVAF();
 int testFullPrev();
+int testFullPipeline64();
+int testFullPipelineBinary();
 
 int testVAFs(
     // VAF paramaeters
@@ -10,3 +12,13 @@ int testVAFs(
 );
 
 #endif
+
+
+// std::vector<double> zeroes(65536, 0.0);
+//     Plaintext zeroPlain = cryptoContext->MakeCKKSPackedPlaintext(zeroes);
+//     Ciphertext<DCRTPoly> ret = cryptoContext->Encrypt(zeroPlain, publicKey); // initialize with zero
+
+//     for (size_t i = 0; i < numCiphertexts; ++i) {
+//         auto ret_temp = cryptoContext->EvalSub(queryCipher, encryptedChunks[0]);
+//         ret = cryptoContext->EvalAdd(ret, ret_temp);
+//     }

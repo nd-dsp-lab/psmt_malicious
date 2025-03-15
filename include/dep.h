@@ -1,6 +1,8 @@
 #ifndef DEP_H
 #define DEP_H
 
+#pragma once
+
 #include "openfhe.h"
 
 using namespace lbcrypto;

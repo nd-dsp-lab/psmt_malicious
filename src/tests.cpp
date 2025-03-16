@@ -261,7 +261,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 4;
             n_dep  = 0;
             n_vaf  = 7;
-            depth  = 11 + 10;
+            depth  = 11 + 10;  // NEED to test the min. required depth
             isNewVAF = false;
         }
         else if (domain == 16) {
@@ -271,7 +271,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 16;
             n_dep  = 0;
             n_vaf  = 4;
-            depth  = 13 + 3;
+            depth  = 13 + 15;  // NEED to test the min. required depth
             isNewVAF = true;
         }
         else if (domain == 256) {
@@ -281,7 +281,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 4;
             n_dep  = 3;
             n_vaf  = 4;
-            depth  = 19 + 3;
+            depth  = 19 + 3;  // min. required depth is 3 higher than the one specified in the table
             isNewVAF = true;
         }
         else if (domain == 65536) {
@@ -291,7 +291,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 5112.73;
             n_dep  = 2;
             n_vaf  = 16;
-            depth  = 32 + 3;
+            depth  = 32 + 3;  // min. required depth is 3 higher than the one specified in the table
             isNewVAF = true;
         }
         else {

@@ -261,7 +261,9 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 4;
             n_dep  = 0;
             n_vaf  = 7;
+
             depth  = 10 + 5 + 1;
+
             isNewVAF = false;
         }
         else if (domain == 16) {
@@ -271,7 +273,9 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 16;
             n_dep  = 0;
             n_vaf  = 4;
+
             depth  = 13 + 4 + 1;
+
             isNewVAF = true;
         }
         else if (domain == 256) {
@@ -281,7 +285,9 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 4;
             n_dep  = 3;
             n_vaf  = 4;
+
             depth  = 19 + 3 + 1;
+
             isNewVAF = true;
         }
         else if (domain == 65536) {
@@ -291,7 +297,9 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 5112.73;
             n_dep  = 2;
             n_vaf  = 16;
+
             depth  = 32 + 2 + 1;
+
             isNewVAF = true;
         }
         else {

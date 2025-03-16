@@ -29,7 +29,9 @@ The proposed VAF takes several parameters for each domain size.
 - `n_dep`: Number of DEP extensions
 
 #### VAF Parameters
-- `n_vaf`: Number of new VAF evaluations $f(x) \mapsto (\frac{3}{2}f(x) - \frac{1}{2})^{2}$.
+- `isNewVAF`: Naive Squaring vs. New Transformation
+- `n_vaf`: Number of transformations ($f(x) \mapsto $f(x)^{2}$ or $f(x) \mapsto (\frac{3}{2}f(x) - \frac{1}{2})^{2}$).
+
 
 #### Optional Parameter
 - `n_cleanse`: Number of cleanse function $f(x) = -2x^{3} + 3x^{2}$.

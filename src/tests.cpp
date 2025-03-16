@@ -251,7 +251,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 2;
             n_dep  = 0;
             n_vaf  = 4;
-            depth  = 8 + 10;
+            depth  = 7 + 6 + 1;
             isNewVAF = false;
         }
         else if (domain == 4) {
@@ -261,7 +261,9 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 4;
             n_dep  = 0;
             n_vaf  = 7;
-            depth  = 11 + 10;  // NEED to test the min. required depth
+
+            depth  = 10 + 5 + 1;
+
             isNewVAF = false;
         }
         else if (domain == 16) {
@@ -271,7 +273,9 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 16;
             n_dep  = 0;
             n_vaf  = 4;
-            depth  = 13 + 15;  // NEED to test the min. required depth
+
+            depth  = 13 + 4 + 1;
+
             isNewVAF = true;
         }
         else if (domain == 256) {
@@ -281,7 +285,9 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 4;
             n_dep  = 3;
             n_vaf  = 4;
-            depth  = 19 + 3;  // min. required depth is 3 higher than the one specified in the table
+
+            depth  = 19 + 3 + 1;
+
             isNewVAF = true;
         }
         else if (domain == 65536) {
@@ -291,7 +297,9 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 5112.73;
             n_dep  = 2;
             n_vaf  = 16;
-            depth  = 32 + 3;  // min. required depth is 3 higher than the one specified in the table
+
+            depth  = 32 + 2 + 1;
+
             isNewVAF = true;
         }
         else {
@@ -315,7 +323,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 2;
             n_dep  = 0;
             n_vaf  = 4;
-            depth  = 8 + 10;
+            depth  = 7 + 7 + 1;
             isNewVAF = false;
         }
         else if (domain == 4) {
@@ -325,7 +333,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 4;
             n_dep  = 0;
             n_vaf  = 7;
-            depth  = 11 + 15;
+            depth  = 10 + 6 + 1;
             isNewVAF = false;
         }
         else if (domain == 16) {
@@ -335,7 +343,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 16;
             n_dep  = 0;
             n_vaf  = 4;
-            depth  = 13 + 5;
+            depth  = 13 + 5 + 1;
             isNewVAF = false;
         }
         else if (domain == 256) {
@@ -345,7 +353,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 4;
             n_dep  = 3;
             n_vaf  = 4;
-            depth  = 19 + 5;
+            depth  = 19 + 4 + 1;
             isNewVAF = true;
         }
         else if (domain == 65536) {
@@ -355,7 +363,7 @@ int testFullPipeline(double sigma, double kappa) {
             R      = 5112.73;
             n_dep  = 2;
             n_vaf  = 16;
-            depth  = 32 + 3;
+            depth  = 32 + 3 + 1;
             isNewVAF = true;
         }
         else {
@@ -372,7 +380,7 @@ int testFullPipeline(double sigma, double kappa) {
         }
     }
 
-    std::cout << "Running the protocol for domain size = " << domain << " bits, and kappa = "
+    std::cout << "Running the protocol for domain size = " << domain << ", and kappa = "
               << kappa << std::endl;
     std::cout << "VAF and weakDEP params: k=" << k 
               << ", L=" << L << ", R=" << R
@@ -420,6 +428,7 @@ int testFullPipeline(double sigma, double kappa) {
         std::cerr << "Error: Query file is empty or couldn't be read." << std::endl;
         return 1;
     }
+    query.resize(kappa);
     std::vector<double> expandedQuery(slots);
     for (size_t i = 0; i < slots; ++i) {
         expandedQuery[i] = query[i % query.size()];
@@ -477,18 +486,24 @@ int testFullPipeline(double sigma, double kappa) {
         encryptedChunks[i] = fusedVAF(
             cryptoContext, encryptedChunks[i], 
             k, L, R, n_dep, n_vaf, 0, isNewVAF
-    );
+        );
+        encryptedChunks[i] = preserveSlotZero(encryptedChunks[i], cryptoContext, kappa);
     }
     
+    auto res = cryptoContext->EvalAddMany(encryptedChunks);
 
-    auto ret = cryptoContext->EvalAddMany(encryptedChunks);
-
-    auto res = preserveSlotZero(ret, cryptoContext, kappa);
+    // Multiplying the masking Vector
+    std::vector<double> maskVec(slots, 0);
+    for (uint32_t i = 0; i < slots; i = i + kappa) {
+        maskVec[i] = 1.0;
+    }
+    auto maskPtxt = cryptoContext->MakeCKKSPackedPlaintext(maskVec);
+    res = cryptoContext->EvalMult(res, maskPtxt);
 
     auto overallEnd = std::chrono::high_resolution_clock::now();
     double overallTime = std::chrono::duration<double>(overallEnd - overallStart).count();
     std::cout << "Overall execution time: " << overallTime << " s" << std::endl;
-    std::cout << "Level: " << ret->GetLevel() << std::endl;
+    std::cout << "Level: " << res->GetLevel() << std::endl;
 
     // --- Decryption and Final Output ---
     Plaintext resultPlain;

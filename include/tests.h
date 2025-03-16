@@ -3,12 +3,13 @@
 
 int testFullNewVAF();
 int testFullPrev();
+int testFullPipeline(double sigma, double kappa);
 int testFullPipeline64();
 int testFullPipelineBinary();
 
 int testVAFs(
     // VAF paramaeters
-    double k, double L, double R, uint32_t n_dep, uint32_t n_vaf, uint32_t n_cleanse, uint32_t depth
+    double k, double L, double R, uint32_t n_dep, uint32_t n_vaf, uint32_t n_cleanse, uint32_t depth, bool isNewVAF
 );
 
 #endif

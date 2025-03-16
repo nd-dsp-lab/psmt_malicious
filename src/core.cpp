@@ -61,26 +61,35 @@ Ciphertext<DCRTPoly> fusedVAF(
     // VAF Parameters
     uint32_t n_vaf,
     // For cleanse
-    uint32_t n_cleanse
+    uint32_t n_cleanse,
+    // NewVAF?
+    bool isNewVAF
 ) {
     auto ret = ctxt->Clone();
-    double invL_R = 1.0 / (pow(L, n_dep-1) * R);
-    double coeff = pow(27.0 / 4.0, 0.5) / pow(k, 1.5);
 
-    // DEP evaluation
-    Ciphertext<DCRTPoly> _tmp; 
-    cc->EvalMultInPlace(ret, invL_R);
-    for (int i = n_dep - 1; i >= 0; i--) {
-        _tmp = cc->EvalSquare(ret);
-        _tmp = cc->EvalSub(k, _tmp);
-
-        if (i > 0) {
-            cc->EvalMultInPlace(ret, L * coeff);
-        } else {
-            // Precomputation of \sqrt(3/2) / R
-            cc->EvalMultInPlace(ret, coeff * pow(1.5, 0.5));
+    // If we need to apply dep?
+    if (n_dep > 0) {
+        double invL_R = 1.0 / (pow(L, n_dep-1) * R);
+        double coeff = pow(27.0 / 4.0, 0.5) / pow(k, 1.5);
+    
+        // DEP evaluation
+        Ciphertext<DCRTPoly> _tmp; 
+        cc->EvalMultInPlace(ret, invL_R);
+        for (int i = n_dep - 1; i >= 0; i--) {
+            _tmp = cc->EvalSquare(ret);
+            _tmp = cc->EvalSub(k, _tmp);
+    
+            if (i > 0) {
+                cc->EvalMultInPlace(ret, L * coeff);
+            } else {
+                // Precomputation of \sqrt(3/2) / R
+                cc->EvalMultInPlace(ret, coeff * pow(1.5, 0.5));
+            }
+            ret = cc->EvalMult(ret, _tmp);
         }
-        ret = cc->EvalMult(ret, _tmp);
+    } else {
+        // Multiply \sqrt(3/2) / R
+        cc->EvalMultInPlace(ret, pow(1.5, 0.5) / R);
     }
 
     // VAF Evaluation
@@ -90,7 +99,15 @@ Ciphertext<DCRTPoly> fusedVAF(
     cc->EvalSquareInPlace(ret);
 
     // Smart VAF Computation
-    ret = smartVAF(cc, ret, n_vaf);
+    if (isNewVAF) {
+        ret = smartVAF(cc, ret, n_vaf);
+    } else {
+        for (uint32_t i = 0; i < n_vaf; i++) {
+            cc->EvalSquareInPlace(ret);
+        }
+    }
+
+    
 
     // (Optional) Cleanse
     for (uint32_t i = 0; i < n_cleanse; i++) {

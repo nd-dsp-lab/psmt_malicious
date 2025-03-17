@@ -344,7 +344,7 @@ int testFullPipeline(double sigma, double kappa) {
             n_dep  = 0;
             n_vaf  = 4;
             depth  = 13 + 5 + 1;
-            isNewVAF = false;
+            isNewVAF = true;
         }
         else if (domain == 256) {
             // domain = 256

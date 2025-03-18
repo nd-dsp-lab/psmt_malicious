@@ -7,7 +7,7 @@
 using namespace lbcrypto;
 
 // Function to set up VAF parameters
-void setupVAFParams(double sigma, double kappa, double& k, int& L, double& R, int& n_dep, int& n_vaf, int& depth, bool& isNewVAF);
+void setupVAFParams(double sigma, double kappa, int& domain, double& k, int& L, double& R, int& n_dep, int& n_vaf, int& depth, bool& isNewVAF);
 
 
 Ciphertext<DCRTPoly> smartVAF(

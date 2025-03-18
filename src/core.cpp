@@ -120,17 +120,11 @@ Ciphertext<DCRTPoly> fusedVAF(
 
 
 
-void setupVAFParams(double sigma, double kappa, double& k, int& L, double& R, int& n_dep, int& n_vaf, int& depth, bool& isNewVAF) {
+void setupVAFParams(double sigma, double kappa, int& domain, double& k, int& L, double& R, int& n_dep, int& n_vaf, int& depth, bool& isNewVAF) {
+    
     int exponent = sigma / kappa; // integer division
-    int domain   = 1 << exponent; // 2^exponent
+    domain   = 1 << exponent; // 2^exponent
 
-    k = 0.0;
-    L = 0;
-    R = 0.0;
-    n_dep = 0;
-    n_vaf = 0;
-    depth = 0;
-    isNewVAF = false;
 
     if ((int)sigma == 64) {
         switch (domain) {

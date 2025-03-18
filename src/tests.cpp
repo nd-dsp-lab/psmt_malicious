@@ -94,9 +94,7 @@ int testFullPipeline(double sigma, double kappa) {
     std::cout << "Initializing program..." << std::endl;
 
     // setting VAF params based on kappa and sigma
-    int exponent = sigma / kappa; // integer division
-    int domain   = 1 << exponent; // 2^exponent
-
+    int domain = 0;
     double k      = 0.0;
     int    L      = 0;
     double R      = 0.0;
@@ -106,7 +104,7 @@ int testFullPipeline(double sigma, double kappa) {
     bool   isNewVAF = false;
 
     // setting up the VAF parameters
-    setupVAFParams(sigma, kappa, k, L, R, n_dep, n_vaf, depth, isNewVAF);
+    setupVAFParams(sigma, kappa, domain, k, L, R, n_dep, n_vaf, depth, isNewVAF);
 
     std::cout << "Running the protocol for domain size = " << domain << ", and kappa = "
               << kappa << std::endl;

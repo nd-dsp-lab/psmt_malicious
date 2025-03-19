@@ -5,6 +5,8 @@ set(CMAKE_CXX_STANDARD 17)
 
 option(BUILD_STATIC "Set to ON to include static versions of the library" OFF)
 
+find_package(OpenSSL REQUIRED)
+
 find_package(OpenFHE CONFIG REQUIRED)
 if (OpenFHE_FOUND)
     message(STATUS "FOUND PACKAGE OpenFHE")
@@ -52,11 +54,21 @@ add_library(psmt_malicious
     ${PROJECT_SOURCE_DIR}/src/vaf.cpp
     ${PROJECT_SOURCE_DIR}/src/tests.cpp
     ${PROJECT_SOURCE_DIR}/src/core.cpp
+    ${PROJECT_SOURCE_DIR}/hashing/hash.cpp
+    ${PROJECT_SOURCE_DIR}/hashing/test.cpp
+    ${PROJECT_SOURCE_DIR}/logreg/core.cpp
+    ${PROJECT_SOURCE_DIR}/logreg/tests.cpp
+    ${PROJECT_SOURCE_DIR}/logreg/utils.cpp
+    ${PROJECT_SOURCE_DIR}/psmt/server.cpp
+    ${PROJECT_SOURCE_DIR}/psmt/client.cpp
+    ${PROJECT_SOURCE_DIR}/psmt/tests.cpp
 )
 
 # Let the library see your include/ folder
 target_include_directories(psmt_malicious PRIVATE
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/logreg
+    ${PROJECT_SOURCE_DIR}/hashing
 )
 
 # Link OpenFHE 
@@ -98,5 +110,60 @@ target_include_directories(main_vaf PRIVATE
 # Finally, link main_vaf:
 
 target_link_libraries(main_vaf PRIVATE psmt_malicious)
+
+##################################################
+# 2) Build the main executable from main_vaf.cpp
+##################################################
+
+add_executable(main_hash
+    ${PROJECT_SOURCE_DIR}/hashing/main_hash.cpp
+)
+
+# Let main_vaf see your include/ folder
+target_include_directories(main_hash PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/hashing
+)
+
+# Finally, link main_vaf:
+
+target_link_libraries(main_hash PRIVATE psmt_malicious OpenSSL::SSL OpenSSL::Crypto)
+
+
+##################################################
+# 2) Build the main executable from main_vaf.cpp
+##################################################
+
+add_executable(main_logreg
+    ${PROJECT_SOURCE_DIR}/logreg/main_logreg.cpp
+)
+
+# Let main_vaf see your include/ folder
+target_include_directories(main_hash PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/logreg
+)
+
+# Finally, link main_vaf:
+
+target_link_libraries(main_logreg PRIVATE psmt_malicious)
+
+##################################################
+# 2) Build the main executable from main_vaf.cpp
+##################################################
+
+add_executable(main_psmt
+    ${PROJECT_SOURCE_DIR}/psmt/main_psmt.cpp
+)
+
+# Let main_vaf see your include/ folder
+target_include_directories(main_hash PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/psmt
+)
+
+# Finally, link main_vaf:
+
+target_link_libraries(main_psmt PRIVATE psmt_malicious)
 
 

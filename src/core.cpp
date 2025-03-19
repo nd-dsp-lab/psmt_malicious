@@ -1,4 +1,4 @@
-#include "core.h"
+#include "../include/core.h"
 
 using namespace lbcrypto;
 
@@ -116,4 +116,16 @@ Ciphertext<DCRTPoly> fusedVAF(
 
     // Return the output
     return ret;
+}
+
+Ciphertext<DCRTPoly> fusedVAFfromParams(
+    CryptoContext<DCRTPoly> cc,
+    Ciphertext<DCRTPoly> ctxt,
+    VAFParams params
+) {
+    return fusedVAF(
+        cc, ctxt,
+        params.k, params.L, params.R, params.n_dep,
+        params.n_vaf, params.n_cleanse, params.isNewVAF
+    );
 }

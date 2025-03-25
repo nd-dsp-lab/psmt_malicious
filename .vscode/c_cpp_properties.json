@@ -6,7 +6,8 @@
                 "${workspaceFolder}/**",
                 "/usr/local/include/openfhe/**",
                 "/usr/local/include/openfhe",
-                "/usr/local/include/openfhe/core"
+                "/usr/local/include/openfhe/core",
+                "/usr/local/include/openfhe/binfhe"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

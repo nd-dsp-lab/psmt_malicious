@@ -1,6 +1,8 @@
 #ifndef TEST_H
 #define TEST_H
 
+#include <stdint.h>
+
 int testFullNewVAF();
 int testFullPrev();
 int testFullPipeline(double sigma, double kappa);

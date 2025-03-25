@@ -16,7 +16,7 @@ std::vector<double> readParams(const std::string& fname) {
 
 
 // Code for reading the database 
-RawDataBase readDatabase(const std::string& fname, const std::string& fnameAns) {
+CancerDB readDatabase(const std::string& fname) {
     std::ifstream file(fname);
     std::vector<uint64_t> idVec;
     std::vector<uint64_t> answer;
@@ -50,49 +50,19 @@ RawDataBase readDatabase(const std::string& fname, const std::string& fnameAns) 
 
         std::vector<double> buf;
 
-        // if (row[1] == "M") {
-        //     answer.push_back(1);
-        // } else {
-        //     answer.push_back(0);
-        // }
+        if (row[1] == "M") {
+            answer.push_back(1);
+        } else {
+            answer.push_back(0);
+        }
 
-        for (uint32_t i = 1; i < row.size(); i++) {
-
+        for (uint32_t i = 2; i < row.size(); i++) {
             buf.push_back(stod(row[i]));
         }
         payload.push_back(buf);        
     }
-
-    std::ifstream fileAns(fnameAns);
-    std::getline(fileAns, line);
-
-    std::cout << "HEADER OF THE DATABASE: " << std::endl;
-    std::cout << line << std::endl;
-
-    while (std::getline(fileAns, line)) {
-        std::vector<std::string> row;
-        std::stringstream ss(line);
-        std::string cell;
-        
-        // Interpret the data
-        while (std::getline(ss, cell, ',')) {
-            row.push_back(cell);
-        }
-        
-        // for (uint32_t i = 0; i < row.size(); i++) {
-        //     std::cout << row[i] << " ";
-        // }
-        // std::cout << std::endl;
-        // if (row[1] == "M") {
-        //     answer.push_back(1);
-        // } else {
-        //     answer.push_back(0);
-        // }
-        // std::cout << row[1] << std::endl;
-        answer.push_back(stod(row[1]));        
-    }    
  
-    return RawDataBase {
+    return CancerDB {
         idVec, answer, payload
     };
 }

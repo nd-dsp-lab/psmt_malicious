@@ -120,7 +120,7 @@ void testEncryptedInference() {
     std::cout << "Preparing Data..." << std::endl;
 
     // Read Database
-    CancerDB DB = readDatabase("../logreg/data/data.csv");
+    RawDataBase DB = readDatabase("../logreg/data/data.csv", "../logreg/data/data.csv");
 
     #pragma omp parallel for
     for (uint32_t i = 0; i < numVar; i++) {

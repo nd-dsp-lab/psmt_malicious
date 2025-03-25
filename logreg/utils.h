@@ -7,18 +7,19 @@
 #include <string>
 #include <iostream>
 
-typedef struct _CancerDB {
+typedef struct _RawDataBase {
     std::vector<uint64_t> idVec;
     std::vector<uint64_t> answer;
     std::vector<std::vector<double>> payload;
-} CancerDB;
+} RawDataBase;
 
 std::vector<double> readParams(
     const std::string& fname
 );
 
-CancerDB readDatabase(
-    const std::string& fname
+RawDataBase readDatabase(
+    const std::string& fname,
+    const std::string& fnameAns
 );
 
 #endif

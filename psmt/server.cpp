@@ -81,8 +81,6 @@ EncryptedDB constructDB(
 }
 
 
-
-
 // Useful tool
 Ciphertext<DCRTPoly> preserveSlotZero(
     CryptoContext<DCRTPoly> cc,

@@ -129,3 +129,5 @@ Ciphertext<DCRTPoly> fusedVAFfromParams(
         params.n_vaf, params.n_cleanse, params.isNewVAF
     );
 }
+
+

@@ -54,7 +54,12 @@ EncryptedDB constructDB(
         for (uint32_t j = 0; j < chunkSize; j++) {
             _tmpLabVec[j * kappa] = labMsgVec[offset + j];
             for (uint32_t k = 0; k < kappa; k++) {
-                _tmpIdVec[j * kappa + k] = chunkedDB[offset + j][k];                
+                if (offset + j >= numItems) {
+                    // Dummy Value
+                    _tmpIdVec[j * kappa + k] = -1;
+                } else {
+                    _tmpIdVec[j * kappa + k] = chunkedDB[offset + j][k];                
+                }                
             }
         }
 
@@ -167,6 +172,73 @@ Ciphertext<DCRTPoly> compInter(
     return ret;
 }
 
+// A protocol returning Compact Representation
+Ciphertext<DCRTPoly> compInterCompact(
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    EncryptedDB DB,
+    Ciphertext<DCRTPoly> queryCtxt,
+    uint32_t serverIdx,
+    uint32_t rotRange
+) {
+    // Step 1. Evaluate VAF
+    std::vector<Ciphertext<DCRTPoly>> vafResultVec(DB.idVec.size());
+    std::vector<Ciphertext<DCRTPoly>> labResultVec(DB.idVec.size());
+
+    // Masking Vector
+    std::vector<double> _tmpVec(1<<16, 0.0);
+    for (uint32_t i = 0;  i < (1<<16); i += DB.kappa) {
+        _tmpVec[i] = 1;
+    }
+    Plaintext maskPtxt = cc->MakeCKKSPackedPlaintext(_tmpVec);
+    // std::cout << DB.idVec.size() << std::endl;
+
+    #pragma omp parallel for 
+    for (uint32_t i = 0; i < DB.idVec.size(); i++) {
+        vafResultVec[i] = cc->EvalSub(DB.idVec[i], queryCtxt);
+        // Evaluate VAF HERE
+        vafResultVec[i] = fusedVAFfromParams(cc, vafResultVec[i], params);
+
+        // Rotation & Multiplication
+        vafResultVec[i] = preserveSlotZero(cc, vafResultVec[i], DB.kappa);
+
+        // Final Masking
+        vafResultVec[i] = cc->EvalMult(vafResultVec[i], maskPtxt);
+
+        // Label Embedding
+        labResultVec[i] = cc->EvalMult(vafResultVec[i], DB.labelVec[i]);
+    }
+    // Additive Aggregation
+    Ciphertext<DCRTPoly> vafResult = cc->EvalAddMany(vafResultVec);
+    Ciphertext<DCRTPoly> labResult = cc->EvalAddMany(labResultVec);
+
+    // Rotation & Addition
+    Ciphertext<DCRTPoly> _tmp;
+    for (uint32_t i = 1; i < 65536; i = i * 2) {
+        _tmp = cc->EvalRotate(vafResult, i);
+        vafResult = cc->EvalAdd(vafResult, _tmp);
+        _tmp = cc->EvalRotate(labResult, i);
+        labResult = cc->EvalAdd(labResult, _tmp);
+    }
+
+    // Choice Statistics
+    Ciphertext<DCRTPoly> ret = labResult->Clone();
+    _tmp = cc->EvalSub(1.0, vafResult);
+    _tmp = cc->EvalMult(_tmp, DB.stat);
+    cc->EvalAddInPlace(ret, _tmp);
+
+    // Extraction
+    std::vector<double> _maskFinalLab(1<<16, 0); _maskFinalLab[serverIdx] = 1;
+    std::vector<double> _maskFinalID(1<<16, 0); _maskFinalID[rotRange] = 1;
+    Plaintext _ptxt = cc->MakeCKKSPackedPlaintext(_maskFinalLab);
+    ret = cc->EvalMult(ret, _ptxt);
+    _ptxt = cc->MakeCKKSPackedPlaintext(_maskFinalID);
+    _tmp = cc->EvalMult(vafResult, _ptxt);
+    cc->EvalAddInPlace(ret, _tmp);
+    return ret;
+}
+
+
 // Operations for the Leader Server
 LSResponse evalCircuit(
     CryptoContext<DCRTPoly> cc,
@@ -201,6 +273,37 @@ LSResponse evalCircuit(
         _tmp = cc->EvalRotate(isInter, i);
         isInter = cc->EvalAdd(isInter, _tmp);
     }
+
+    // Do a VAF evaluation
+    isInter = fusedVAFfromParams(cc, isInter, paramsVAF);
+    isInter = cc->EvalSub(1.0, isInter);
+
+    return LSResponse { evalRet, isInter };
+}
+
+// Operation with the server with a compact representation.
+LSResponse evalCircuitCompact(
+    CryptoContext<DCRTPoly> cc,
+    std::vector<Ciphertext<DCRTPoly>> ctxts,
+    VAFParams paramsVAF,
+    LogRegParamsCompact paramsLR,
+    uint32_t kappa
+) {
+    // Summates all the ciphertexts
+    auto evalRet = cc->EvalAddMany(ctxts);
+
+    // Extract Membership information
+    std::vector<double> _maskVec(1<<16, 0); _maskVec[paramsLR.rotRange] = 1;
+    Plaintext _ptxt = cc->MakeCKKSPackedPlaintext(_maskVec);
+    auto isInter = cc->EvalMult(evalRet, _ptxt);
+    cc->EvalSubInPlace(evalRet, isInter);
+
+    // Evaluate Logistic Regression
+    evalRet = logRegEvalCompact(cc, paramsLR, evalRet);
+    std::vector<double> _maskVecRet(1<<16, 0); _maskVecRet[0] = 1;
+
+    Plaintext maskPtxtRet = cc->MakeCKKSPackedPlaintext(_maskVecRet);
+    evalRet = cc->EvalMult(evalRet, maskPtxtRet);
 
     // Do a VAF evaluation
     isInter = fusedVAFfromParams(cc, isInter, paramsVAF);

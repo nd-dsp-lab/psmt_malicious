@@ -58,7 +58,12 @@ typedef struct _VAFParams {
 } VAFParams;
 
 // Function to set up VAF parameters
+<<<<<<< HEAD
 // void setupVAFParams(double sigma, double kappa, int& domain, double& k, int& L, double& R, int& n_dep, int& n_vaf, int& depth, bool& isNewVAF);
+=======
+void setupVAFParams(double sigma, double kappa, int& domain, double& k, int& L, double& R, int& n_dep, int& n_vaf, int& depth, bool& isNewVAF);
+
+>>>>>>> 9346b21c05e65a133d02b71235c977e00a335553
 
 Ciphertext<DCRTPoly> smartVAF(
     CryptoContext<DCRTPoly> cc,

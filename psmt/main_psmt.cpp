@@ -15,8 +15,8 @@ void printUsage() {
               << " -DBName <str>"
               << " -isSim <int>"
               << " -isCompact <int>"
-              << " -scalingModSize <int> (optional, max 59)\n"
-              << " -isCompact <int>";
+              << " -scalingModSize <int> (optional, max 59)"
+              << " -numChunks <int>\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -64,12 +64,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    bool isCompact = true;
-    if (args["-isCompact"] == "1") {
-        isCompact = true;
-    } else {
-        isCompact = false;
-    }    
+
     std::uint32_t numChunks = 0; 
     numChunks = stoi(args["-numChunks"]);
 

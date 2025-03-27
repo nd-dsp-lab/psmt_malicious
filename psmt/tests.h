@@ -14,6 +14,18 @@ using namespace lbcrypto;
 
 void testSingleServer();
 void testLeaderServer();
-void testFullPipelineRealData(std::string DBPath, std::string ansPath, std::string paramPath);
+void testFullPipelineRealData(
+    std::string DBPath, 
+    std::string ansPath, 
+    std::string paramPath,
+    bool isSim
+);
+
+void testFullPipelineCompactRealData(
+    std::string DBPath, 
+    std::string ansPath, 
+    std::string paramPath, 
+    bool isSim
+);
 
 #endif

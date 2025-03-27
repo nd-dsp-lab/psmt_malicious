@@ -41,11 +41,28 @@ Ciphertext<DCRTPoly> compInter(
     Ciphertext<DCRTPoly> queryCtxt
 );
 
+Ciphertext<DCRTPoly> compInterCompact(
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    EncryptedDB DB,
+    Ciphertext<DCRTPoly> queryCtxt,
+    uint32_t serverIdx,
+    uint32_t rotRange
+);
+
 LSResponse evalCircuit(
     CryptoContext<DCRTPoly> cc,
     std::vector<Ciphertext<DCRTPoly>> ctxts,
     VAFParams paramsVAF,
     LogRegParams paramsLR,
+    uint32_t kappa
+);
+
+LSResponse evalCircuitCompact(
+    CryptoContext<DCRTPoly> cc,
+    std::vector<Ciphertext<DCRTPoly>> ctxts,
+    VAFParams paramsVAF,
+    LogRegParamsCompact paramsLR,
     uint32_t kappa
 );
 

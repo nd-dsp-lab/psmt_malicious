@@ -18,14 +18,16 @@ void testFullPipelineRealData(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath,
-    bool isSim
+    bool isSim,
+    int scalingMod
 );
 
 void testFullPipelineCompactRealData(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
-    bool isSim
+    bool isSim, 
+    int scalingMod
 );
 
 #endif

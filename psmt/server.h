@@ -7,9 +7,17 @@
 
 using namespace lbcrypto;
 
+#define MAX_NUM_CORES 48
+
+typedef struct _EncryptedChunk {
+    Ciphertext<DCRTPoly> idCtxt;
+    Ciphertext<DCRTPoly> labelCtxt;
+    Ciphertext<DCRTPoly> stat;
+    uint32_t kappa;
+} EncryptedChunk;
+
 typedef struct _EncryptedDB {
-    std::vector<Ciphertext<DCRTPoly>> idVec;
-    std::vector<Ciphertext<DCRTPoly>> labelVec;
+    std::vector<EncryptedChunk> chunks;
     Ciphertext<DCRTPoly> stat;
     uint32_t kappa; 
 } EncryptedDB;
@@ -34,14 +42,31 @@ Ciphertext<DCRTPoly> preserveSlotZero(
     size_t kappa                            
 );
 
-Ciphertext<DCRTPoly> compInter(
+Ciphertext<DCRTPoly> compInterChunks (
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    std::vector<EncryptedChunk> chunks,
+    Ciphertext<DCRTPoly> queryCtxt
+);
+
+Ciphertext<DCRTPoly> compInterCompactChunks(
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    std::vector<EncryptedChunk> chunks,
+    Ciphertext<DCRTPoly> queryCtxt,
+    uint32_t serverIdx,
+    uint32_t rotRange
+);
+
+
+Ciphertext<DCRTPoly> compInterDB(
     CryptoContext<DCRTPoly> cc,
     VAFParams params,
     EncryptedDB DB,
     Ciphertext<DCRTPoly> queryCtxt
 );
 
-Ciphertext<DCRTPoly> compInterCompact(
+Ciphertext<DCRTPoly> compInterCompactDB(
     CryptoContext<DCRTPoly> cc,
     VAFParams params,
     EncryptedDB DB,
@@ -50,9 +75,19 @@ Ciphertext<DCRTPoly> compInterCompact(
     uint32_t rotRange
 );
 
+
+
 LSResponse evalCircuit(
     CryptoContext<DCRTPoly> cc,
     std::vector<Ciphertext<DCRTPoly>> ctxts,
+    VAFParams paramsVAF,
+    LogRegParams paramsLR,
+    uint32_t kappa
+);
+
+LSResponse evalCircuitfromChunks(
+    CryptoContext<DCRTPoly> cc,
+    std::vector<std::vector<Ciphertext<DCRTPoly>>> ctxtVecs,
     VAFParams paramsVAF,
     LogRegParams paramsLR,
     uint32_t kappa
@@ -66,6 +101,12 @@ LSResponse evalCircuitCompact(
     uint32_t kappa
 );
 
-
+LSResponse evalCircuitCompactfromChunks(
+    CryptoContext<DCRTPoly> cc,
+    std::vector<std::vector<Ciphertext<DCRTPoly>>> ctxtVecs,
+    VAFParams paramsVAF,
+    LogRegParamsCompact paramsLR,
+    uint32_t kappa
+);
 
 #endif

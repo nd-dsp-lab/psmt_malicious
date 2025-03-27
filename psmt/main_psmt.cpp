@@ -8,13 +8,13 @@
 // }
 
 void printUsage() {
-    std::cerr << "\nUsage: ./main_psmt" << " -DBPath <str>" << " -DBName <str>" << " -isSim <int>" << " -isCompact <int>\n" ;
+    std::cerr << "\nUsage: ./main_psmt" << " -DBPath <str>" << " -DBName <str>" << " -isSim <int>" << " -isCompact <int>" << " -numChunks <int>\n" ;
 }
 
 
 int main(int argc, char* argv[])  {
     const std::string REQUIRED_FLAGS[] = {
-        "-DBPath", "-DBName", "-isSim", "-isCompact"
+        "-DBPath", "-DBName", "-isSim", "-isCompact", "-numChunks"
     };
 
     std::map<std::string, std::string> args;
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])  {
     } else {
         isCompact = false;
     }    
-
+    std::uint32_t numChunks = stoi(args["-numChunks"]);
     std::string DBPath = rootDir + DBName + "_prepared.csv";
     std::string ansPath = rootDir + DBName +"_answer.csv";
     std::string paramPath = rootDir + DBName +"_params.bin";
@@ -62,10 +62,20 @@ int main(int argc, char* argv[])  {
     std::cout << "Answer Path: " << ansPath << std::endl;
     std::cout << "Parameter Path: " << paramPath << std::endl;
 
-    if (isCompact) {
-        testFullPipelineCompactRealData(DBPath, ansPath, paramPath, isSim);
+    if (numChunks == 0) {
+        if (isCompact) {
+            testFullPipelineCompactRealData(DBPath, ansPath, paramPath, isSim);
+        } else {
+            testFullPipelineRealData(DBPath, ansPath, paramPath, isSim);
+        }
     } else {
-        testFullPipelineRealData(DBPath, ansPath, paramPath, isSim);
+        if (isCompact) {
+            testFullPipelineCompactRealDataChunks(DBPath, ansPath, paramPath, isSim, numChunks);
+        } else {
+            testFullPipelineRealDataChunks(DBPath, ansPath, paramPath, isSim, numChunks);
+        }
     }
+
+    
     return 0;
 }

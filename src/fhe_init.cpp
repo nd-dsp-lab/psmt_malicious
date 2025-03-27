@@ -13,7 +13,7 @@ FHEContext InitFHE(const FHEParams &params) {
     cryptoParams.SetRingDim(params.ringDim);
     cryptoParams.SetScalingTechnique(FLEXIBLEAUTOEXT);
 
-    #cryptoParams.SetMultipartyMode(NOISE_FLOODING_MULTIPARTY);
+    //cryptoParams.SetMultipartyMode(NOISE_FLOODING_MULTIPARTY);
 
     std::cout << "Generating CryptoContext..." << std::endl;
     context.cryptoContext = GenCryptoContext(cryptoParams);

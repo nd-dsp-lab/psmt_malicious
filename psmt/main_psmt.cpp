@@ -53,7 +53,8 @@ int main(int argc, char* argv[])  {
     } else {
         isCompact = false;
     }    
-    std::uint32_t numChunks = stoi(args["-numChunks"]);
+    std::uint32_t numChunks = 0; 
+    numChunks = stoi(args["-numChunks"]);
     std::string DBPath = rootDir + DBName + "_prepared.csv";
     std::string ansPath = rootDir + DBName +"_answer.csv";
     std::string paramPath = rootDir + DBName +"_params.bin";

@@ -10,10 +10,13 @@
 
 #include <string>
 
+#define MAX_NUM_CORES 48
+
 using namespace lbcrypto;
 
 void testSingleServer();
 void testLeaderServer();
+
 void testFullPipelineRealData(
     std::string DBPath, 
     std::string ansPath, 
@@ -30,4 +33,24 @@ void testFullPipelineCompactRealData(
     int scalingMod
 );
 
+
+void testFullPipelineRealDataChunks(
+    std::string DBPath, 
+    std::string ansPath, 
+    std::string paramPath, 
+    bool isSim,
+    int scalingMod,
+    uint32_t numChunks
+);
+
+void testFullPipelineCompactRealDataChunks(
+    std::string DBPath, 
+    std::string ansPath, 
+    std::string paramPath, 
+    bool isSim,
+    int scalingMod,
+    uint32_t numChunks
+);
+
 #endif
+

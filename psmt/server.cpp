@@ -31,7 +31,7 @@ EncryptedDB constructDB(
     // Pre-process the idMsgVec
     std::vector<std::vector<uint64_t>> chunkedDB(numItems);
 
-    #pragma omp parallel for
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
     for (uint32_t i = 0; i < numItems; i++) {
         chunkedDB[i] = chunkDataset(idMsgVec[i], kappa);
     }
@@ -41,10 +41,18 @@ EncryptedDB constructDB(
     uint32_t chunkSize = (1<<16) / kappa;
     uint32_t numChunk = numItems / chunkSize + (numItems % chunkSize != 0);
 
-    std::vector<Ciphertext<DCRTPoly>> idVec(numChunk);
-    std::vector<Ciphertext<DCRTPoly>> labelVec(numChunk);
+    // Prepare Statistics
+    std::vector<double> statVec(1<<16, 0.0);
+    for (uint32_t i = 0; i < chunkSize; i++) {
+        statVec[i * kappa] = statVal;
+    }
+    Plaintext ptxtStat = cc->MakeCKKSPackedPlaintext(statVec);
+    Ciphertext<DCRTPoly> stat = cc->Encrypt(ptxtStat, pk);
 
-    #pragma omp parallel for
+
+    std::vector<EncryptedChunk> chunks(numChunk);
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
     for (uint32_t i = 0; i < numChunk; i++) {
         uint32_t offset = chunkSize * i;
 
@@ -66,22 +74,17 @@ EncryptedDB constructDB(
         // Encrypt Data
         Plaintext ptxtId = cc->MakeCKKSPackedPlaintext(_tmpIdVec);
         Plaintext ptxtLab = cc->MakeCKKSPackedPlaintext(_tmpLabVec);
-
-        idVec[i] = cc->Encrypt(ptxtId, pk);
-        labelVec[i] = cc->Encrypt(ptxtLab, pk);
+        chunks[i] = EncryptedChunk {
+            cc->Encrypt(ptxtId, pk),
+            cc->Encrypt(ptxtLab, pk),
+            stat,
+            kappa
+        };
     }
-
-    // Prepare Statistics
-    std::vector<double> statVec(1<<16, 0.0);
-    for (uint32_t i = 0; i < chunkSize; i++) {
-        statVec[i * kappa] = statVal;
-    }
-    Plaintext ptxtStat = cc->MakeCKKSPackedPlaintext(statVec);
-    Ciphertext<DCRTPoly> stat = cc->Encrypt(ptxtStat, pk);
 
     // Done!
     return EncryptedDB {
-        idVec, labelVec, stat, kappa
+        chunks, stat, kappa
     };
 }
 
@@ -108,40 +111,42 @@ Ciphertext<DCRTPoly> preserveSlotZero(
     return ct;
 }
 
-// Do Intersection
-Ciphertext<DCRTPoly> compInter(
+// Computing Intersection for Chunks
+Ciphertext<DCRTPoly> compInterChunks (
     CryptoContext<DCRTPoly> cc,
     VAFParams params,
-    EncryptedDB DB,
+    std::vector<EncryptedChunk> chunks,
     Ciphertext<DCRTPoly> queryCtxt
 ) {
 
+    uint32_t numChunks = chunks.size();
+    uint32_t kappa = chunks[0].kappa;
+
     // Step 1. Evaluate VAF
-    std::vector<Ciphertext<DCRTPoly>> vafResultVec(DB.idVec.size());
-    std::vector<Ciphertext<DCRTPoly>> labResultVec(DB.idVec.size());
+    std::vector<Ciphertext<DCRTPoly>> vafResultVec(numChunks);
+    std::vector<Ciphertext<DCRTPoly>> labResultVec(numChunks);
 
     // Masking Vector
     std::vector<double> _tmpVec(1<<16, 0.0);
-    for (uint32_t i = 0;  i < (1<<16); i += DB.kappa) {
+    for (uint32_t i = 0;  i < (1<<16); i += chunks[0].kappa) {
         _tmpVec[i] = 1;
     }
     Plaintext maskPtxt = cc->MakeCKKSPackedPlaintext(_tmpVec);
-    // std::cout << DB.idVec.size() << std::endl;
 
-    #pragma omp parallel for 
-    for (uint32_t i = 0; i < DB.idVec.size(); i++) {
-        vafResultVec[i] = cc->EvalSub(DB.idVec[i], queryCtxt);
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (uint32_t i = 0; i < numChunks; i++) {
+        vafResultVec[i] = cc->EvalSub(chunks[i].idCtxt, queryCtxt);
         // Evaluate VAF HERE
         vafResultVec[i] = fusedVAFfromParams(cc, vafResultVec[i], params);
 
         // Rotation & Multiplication
-        vafResultVec[i] = preserveSlotZero(cc, vafResultVec[i], DB.kappa);
+        vafResultVec[i] = preserveSlotZero(cc, vafResultVec[i], kappa);
 
         // Final Masking
         vafResultVec[i] = cc->EvalMult(vafResultVec[i], maskPtxt);
 
         // Label Embedding
-        labResultVec[i] = cc->EvalMult(vafResultVec[i], DB.labelVec[i]);
+        labResultVec[i] = cc->EvalMult(vafResultVec[i], chunks[i].labelCtxt);
     }
     // Additive Aggregation
     Ciphertext<DCRTPoly> vafResult = cc->EvalAddMany(vafResultVec);
@@ -152,7 +157,7 @@ Ciphertext<DCRTPoly> compInter(
 
     // Rotation & Addition
     Ciphertext<DCRTPoly> _tmp;
-    for (uint32_t i = DB.kappa; i < 65536; i = i * 2) {
+    for (uint32_t i = kappa; i < 65536; i = i * 2) {
         _tmp = cc->EvalRotate(vafResult, i);
         vafResult = cc->EvalAdd(vafResult, _tmp);
         _tmp = cc->EvalRotate(labResult, i);
@@ -163,50 +168,53 @@ Ciphertext<DCRTPoly> compInter(
     // Choice Statistics
     Ciphertext<DCRTPoly> ret = labResult->Clone();
     _tmp = cc->EvalSub(1.0, vafResult);
-    _tmp = cc->EvalMult(_tmp, DB.stat);
+    _tmp = cc->EvalMult(_tmp, chunks[0].stat);
     cc->EvalAddInPlace(ret, _tmp);
     _tmp = cc->EvalRotate(vafResult, -1);
     cc->EvalAddInPlace(ret, _tmp);
 
     // Done!
-    return ret;
+    return ret;    
 }
 
 // A protocol returning Compact Representation
-Ciphertext<DCRTPoly> compInterCompact(
+Ciphertext<DCRTPoly> compInterCompactChunks(
     CryptoContext<DCRTPoly> cc,
     VAFParams params,
-    EncryptedDB DB,
+    std::vector<EncryptedChunk> chunks,
     Ciphertext<DCRTPoly> queryCtxt,
     uint32_t serverIdx,
     uint32_t rotRange
 ) {
+    uint32_t numChunks = chunks.size();
+    uint32_t kappa = chunks[0].kappa;
+
     // Step 1. Evaluate VAF
-    std::vector<Ciphertext<DCRTPoly>> vafResultVec(DB.idVec.size());
-    std::vector<Ciphertext<DCRTPoly>> labResultVec(DB.idVec.size());
+    std::vector<Ciphertext<DCRTPoly>> vafResultVec(numChunks);
+    std::vector<Ciphertext<DCRTPoly>> labResultVec(numChunks);
 
     // Masking Vector
     std::vector<double> _tmpVec(1<<16, 0.0);
-    for (uint32_t i = 0;  i < (1<<16); i += DB.kappa) {
+    for (uint32_t i = 0;  i < (1<<16); i += kappa) {
         _tmpVec[i] = 1;
     }
     Plaintext maskPtxt = cc->MakeCKKSPackedPlaintext(_tmpVec);
     // std::cout << DB.idVec.size() << std::endl;
 
-    #pragma omp parallel for 
-    for (uint32_t i = 0; i < DB.idVec.size(); i++) {
-        vafResultVec[i] = cc->EvalSub(DB.idVec[i], queryCtxt);
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (uint32_t i = 0; i < numChunks; i++) {
+        vafResultVec[i] = cc->EvalSub(chunks[i].idCtxt, queryCtxt);
         // Evaluate VAF HERE
         vafResultVec[i] = fusedVAFfromParams(cc, vafResultVec[i], params);
 
         // Rotation & Multiplication
-        vafResultVec[i] = preserveSlotZero(cc, vafResultVec[i], DB.kappa);
+        vafResultVec[i] = preserveSlotZero(cc, vafResultVec[i], kappa);
 
         // Final Masking
         vafResultVec[i] = cc->EvalMult(vafResultVec[i], maskPtxt);
 
         // Label Embedding
-        labResultVec[i] = cc->EvalMult(vafResultVec[i], DB.labelVec[i]);
+        labResultVec[i] = cc->EvalMult(vafResultVec[i], chunks[i].labelCtxt);
     }
     // Additive Aggregation
     Ciphertext<DCRTPoly> vafResult = cc->EvalAddMany(vafResultVec);
@@ -224,7 +232,7 @@ Ciphertext<DCRTPoly> compInterCompact(
     // Choice Statistics
     Ciphertext<DCRTPoly> ret = labResult->Clone();
     _tmp = cc->EvalSub(1.0, vafResult);
-    _tmp = cc->EvalMult(_tmp, DB.stat);
+    _tmp = cc->EvalMult(_tmp, chunks[0].stat);
     cc->EvalAddInPlace(ret, _tmp);
 
     // Extraction
@@ -238,6 +246,30 @@ Ciphertext<DCRTPoly> compInterCompact(
     return ret;
 }
 
+
+// Do Intersection
+Ciphertext<DCRTPoly> compInterDB(
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    EncryptedDB DB,
+    Ciphertext<DCRTPoly> queryCtxt
+) {
+    // Just run the intersection over all chunks
+    return compInterChunks(cc, params, DB.chunks, queryCtxt);
+}
+
+// A protocol returning Compact Representation
+Ciphertext<DCRTPoly> compInterCompactDB(
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    EncryptedDB DB,
+    Ciphertext<DCRTPoly> queryCtxt,
+    uint32_t serverIdx,
+    uint32_t rotRange
+) {
+    // Just run the intersection over all chunks
+    return compInterCompactChunks(cc, params, DB.chunks, queryCtxt, serverIdx, rotRange);
+}
 
 // Operations for the Leader Server
 LSResponse evalCircuit(
@@ -278,6 +310,22 @@ LSResponse evalCircuit(
     isInter = fusedVAFfromParams(cc, isInter, paramsVAF);
     isInter = cc->EvalSub(1.0, isInter);
 
+    // Do Rescale Before Return
+    uint32_t lvlevalRet = evalRet->GetLevel();
+    uint32_t lvlisInter = isInter->GetLevel();
+
+    if (lvlisInter > lvlevalRet) {
+        uint32_t numRS = lvlisInter - lvlevalRet;
+        for (uint32_t i = 0; i < numRS; i++) {
+            cc->Rescale(evalRet);
+        }
+    } else {
+        uint32_t numRS = lvlevalRet - lvlisInter;
+        for (uint32_t i = 0; i < numRS; i++) {
+            cc->Rescale(isInter);
+        }        
+    }
+
     return LSResponse { evalRet, isInter };
 }
 
@@ -308,6 +356,65 @@ LSResponse evalCircuitCompact(
     // Do a VAF evaluation
     isInter = fusedVAFfromParams(cc, isInter, paramsVAF);
     isInter = cc->EvalSub(1.0, isInter);
+    
+    // Do Rescale Before Return
+    uint32_t lvlevalRet = evalRet->GetLevel();
+    uint32_t lvlisInter = isInter->GetLevel();
+
+    if (lvlisInter > lvlevalRet) {
+        uint32_t numRS = lvlisInter - lvlevalRet;
+        for (uint32_t i = 0; i < numRS; i++) {
+            cc->Rescale(evalRet);
+        }
+    } else {
+        uint32_t numRS = lvlevalRet - lvlisInter;
+        for (uint32_t i = 0; i < numRS; i++) {
+            cc->Rescale(isInter);
+        }        
+    }    
 
     return LSResponse { evalRet, isInter };
 }
+
+// Evalauting Circuit for Chunks
+LSResponse evalCircuitfromChunks(
+    CryptoContext<DCRTPoly> cc,
+    std::vector<std::vector<Ciphertext<DCRTPoly>>> ctxtVecs,
+    VAFParams paramsVAF,
+    LogRegParams paramsLR,
+    uint32_t kappa
+) {
+    // Prepare the ctxts
+    uint32_t numLabels = ctxtVecs.size();
+    std::vector<Ciphertext<DCRTPoly>> ctxts(numLabels);
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (uint32_t i = 0; i < numLabels; i++) {
+        ctxts[i] = cc->EvalAddMany(ctxtVecs[i]);
+    }
+
+    // Do the original code
+    return evalCircuit(cc, ctxts, paramsVAF, paramsLR, kappa);
+}
+
+// Evalauting Circuit for Chunks
+LSResponse evalCircuitCompactfromChunks(
+    CryptoContext<DCRTPoly> cc,
+    std::vector<std::vector<Ciphertext<DCRTPoly>>> ctxtVecs,
+    VAFParams paramsVAF,
+    LogRegParamsCompact paramsLR,
+    uint32_t kappa
+) {
+    // Prepare the ctxts
+    uint32_t numLabels = ctxtVecs.size();
+    std::vector<Ciphertext<DCRTPoly>> ctxts(numLabels);
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (uint32_t i = 0; i < numLabels; i++) {
+        ctxts[i] = cc->EvalAddMany(ctxtVecs[i]);
+    }
+
+    // Do the original code
+    return evalCircuitCompact(cc, ctxts, paramsVAF, paramsLR, kappa);
+}
+

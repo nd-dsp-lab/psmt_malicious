@@ -9,17 +9,21 @@
 
 
 void printUsage() {
+
     std::cerr << "\nUsage: ./main_psmt"
               << " -DBPath <str>"
               << " -DBName <str>"
               << " -isSim <int>"
               << " -isCompact <int>"
-              << " -scalingModSize <int> (optional, max 59)\n";
+              << " -scalingModSize <int> (optional, max 59)\n"
+              << " -isCompact <int>";
 }
 
 int main(int argc, char* argv[]) {
     const std::string REQUIRED_FLAGS[] = {
-        "-DBPath", "-DBName", "-isSim", "-isCompact", "-scalingModSize"
+
+        "-DBPath", "-DBName", "-isSim", "-isCompact", "-scalingModSize", "-numChunks"
+
     };
 
     std::map<std::string, std::string> args;
@@ -60,6 +64,17 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    bool isCompact = true;
+    if (args["-isCompact"] == "1") {
+        isCompact = true;
+    } else {
+        isCompact = false;
+    }    
+    std::uint32_t numChunks = 0; 
+    numChunks = stoi(args["-numChunks"]);
+
+
+
     std::string DBPath = rootDir + DBName + "_prepared.csv";
     std::string ansPath = rootDir + DBName + "_answer.csv";
     std::string paramPath = rootDir + DBName + "_params.bin";
@@ -69,11 +84,21 @@ int main(int argc, char* argv[]) {
     std::cout << "Parameter Path: " << paramPath << std::endl;
     std::cout << "Scaling Mod Size: " << scalingModSize << std::endl;
 
-    if (isCompact) {
-        testFullPipelineCompactRealData(DBPath, ansPath, paramPath, isSim, scalingModSize);
+
+    if (numChunks == 0) {
+        if (isCompact) {
+            testFullPipelineCompactRealData(DBPath, ansPath, paramPath, isSim, scalingModSize);
+        } else {
+            testFullPipelineRealData(DBPath, ansPath, paramPath, isSim, scalingModSize);
+        }
     } else {
-        testFullPipelineRealData(DBPath, ansPath, paramPath, isSim, scalingModSize);
+        if (isCompact) {
+            testFullPipelineCompactRealDataChunks(DBPath, ansPath, paramPath, isSim, scalingModSize, numChunks);
+        } else {
+            testFullPipelineRealDataChunks(DBPath, ansPath, paramPath, isSim, scalingModSize, numChunks);
+        }
     }
 
+    
     return 0;
 }

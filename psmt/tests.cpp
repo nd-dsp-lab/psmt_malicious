@@ -855,6 +855,7 @@ void testFullPipelineRealDataChunks(
             DBfromFirstServer.chunks.begin() + numChunks, DBfromFirstServer.chunks.end()
         );
 
+        #pragma omp parallel for num_threads(MAX_NUM_CORES)
         for (uint32_t i = 1; i < numOfSendersforLabel; i++) {
             // Construct Mock Ciphertexts
             std::vector<double> mockMsg(1<<16, 0);
@@ -869,7 +870,7 @@ void testFullPipelineRealDataChunks(
 
         interCtxts[0] = firstInterCtxts;
 
-        #pragma omp parallel for
+        #pragma omp parallel for num_threads(MAX_NUM_CORES)
         for (uint32_t i = 1; i < numVar; i++) {
             std::vector<Ciphertext<DCRTPoly>> _tmpVec(numOfSendersforLabel);
             for (uint32_t j = 0; j < numOfSendersforLabel; j++) {

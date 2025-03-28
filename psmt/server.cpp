@@ -133,8 +133,13 @@ Ciphertext<DCRTPoly> compInterChunks (
     }
     Plaintext maskPtxt = cc->MakeCKKSPackedPlaintext(_tmpVec);
 
-    #pragma omp parallel for num_threads(MAX_NUM_CORES)
-    for (uint32_t i = 0; i < numChunks; i++) {
+    std::cout << "\nNumChunks: " << numChunks << std::endl;
+
+    if (numChunks > 2) {
+
+        std::cout << "\nW/ multi-threading... " << std::endl;
+        #pragma omp parallel for num_threads(MAX_NUM_CORES)
+        for (uint32_t i = 0; i < numChunks; i++) {
         vafResultVec[i] = cc->EvalSub(chunks[i].idCtxt, queryCtxt);
         // Evaluate VAF HERE
         vafResultVec[i] = fusedVAFfromParams(cc, vafResultVec[i], params);
@@ -147,7 +152,26 @@ Ciphertext<DCRTPoly> compInterChunks (
 
         // Label Embedding
         labResultVec[i] = cc->EvalMult(vafResultVec[i], chunks[i].labelCtxt);
+        }
     }
+    else {
+        std::cout << "\nW/0 multi-threading... " << std::endl;
+        for (uint32_t i = 0; i < numChunks; i++) {
+        vafResultVec[i] = cc->EvalSub(chunks[i].idCtxt, queryCtxt);
+        // Evaluate VAF HERE
+        vafResultVec[i] = fusedVAFfromParams(cc, vafResultVec[i], params);
+
+        // Rotation & Multiplication
+        vafResultVec[i] = preserveSlotZero(cc, vafResultVec[i], kappa);
+
+        // Final Masking
+        vafResultVec[i] = cc->EvalMult(vafResultVec[i], maskPtxt);
+
+        // Label Embedding
+        labResultVec[i] = cc->EvalMult(vafResultVec[i], chunks[i].labelCtxt);
+        }
+    }
+    
     // Additive Aggregation
     Ciphertext<DCRTPoly> vafResult = cc->EvalAddMany(vafResultVec);
     Ciphertext<DCRTPoly> labResult = cc->EvalAddMany(labResultVec);
@@ -201,8 +225,13 @@ Ciphertext<DCRTPoly> compInterCompactChunks(
     Plaintext maskPtxt = cc->MakeCKKSPackedPlaintext(_tmpVec);
     // std::cout << DB.idVec.size() << std::endl;
 
-    #pragma omp parallel for num_threads(MAX_NUM_CORES)
-    for (uint32_t i = 0; i < numChunks; i++) {
+    std::cout << "\nNumChunks: " << numChunks << std::endl;
+
+    if (numChunks > 2) {
+
+        std::cout << "\nW/ multi-threading... " << std::endl;
+        #pragma omp parallel for num_threads(MAX_NUM_CORES)
+        for (uint32_t i = 0; i < numChunks; i++) {
         vafResultVec[i] = cc->EvalSub(chunks[i].idCtxt, queryCtxt);
         // Evaluate VAF HERE
         vafResultVec[i] = fusedVAFfromParams(cc, vafResultVec[i], params);
@@ -215,7 +244,26 @@ Ciphertext<DCRTPoly> compInterCompactChunks(
 
         // Label Embedding
         labResultVec[i] = cc->EvalMult(vafResultVec[i], chunks[i].labelCtxt);
+        }
     }
+    else {
+        std::cout << "\nW/0 multi-threading... " << std::endl;
+        for (uint32_t i = 0; i < numChunks; i++) {
+        vafResultVec[i] = cc->EvalSub(chunks[i].idCtxt, queryCtxt);
+        // Evaluate VAF HERE
+        vafResultVec[i] = fusedVAFfromParams(cc, vafResultVec[i], params);
+
+        // Rotation & Multiplication
+        vafResultVec[i] = preserveSlotZero(cc, vafResultVec[i], kappa);
+
+        // Final Masking
+        vafResultVec[i] = cc->EvalMult(vafResultVec[i], maskPtxt);
+
+        // Label Embedding
+        labResultVec[i] = cc->EvalMult(vafResultVec[i], chunks[i].labelCtxt);
+        }
+    }
+    
     // Additive Aggregation
     Ciphertext<DCRTPoly> vafResult = cc->EvalAddMany(vafResultVec);
     Ciphertext<DCRTPoly> labResult = cc->EvalAddMany(labResultVec);

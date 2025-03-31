@@ -11,9 +11,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    int k = std::atoi(argv[1]);
-    int L = std::atoi(argv[2]);
-    int R = std::atoi(argv[3]);
+    double k = std::stod(argv[1]);
+    double L = std::stod(argv[2]);
+    double R = std::stod(argv[3]);
     int n_dep = std::atoi(argv[4]);
     int n_vaf = std::atoi(argv[5]);
     int n_cleanse = std::atoi(argv[6]);

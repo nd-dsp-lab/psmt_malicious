@@ -131,7 +131,7 @@ Ciphertext<DCRTPoly> fusedVAFfromParams(
 }
 
 
-void setupVAFParams(double sigma, double kappa, int& domain, double& k, int& L, double& R, int& n_dep, int& n_vaf, int& depth, bool& isNewVAF) {
+void setupVAFParams(double sigma, double kappa, int& domain, double& k, double& L, double& R, int& n_dep, int& n_vaf, int& depth, bool& isNewVAF) {
     
     int exponent = sigma / kappa; // integer division
     domain   = 1 << exponent; // 2^exponent

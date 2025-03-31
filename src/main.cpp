@@ -21,7 +21,18 @@ int main(int argc, char* argv[]) {
     double sigma = std::stod(argv[1]);  
     double kappa = std::stod(argv[2]);  
 
-    testFullPipeline(sigma, kappa);
+    if (kappa == 0){
+
+        // no chunking used
+        testFullPipelineFor20BitDomainVAF();
+
+    } else {
+
+        //chunking used
+        testFullPipeline(sigma, kappa);
+    }
+
+
 
     return 0;
 }

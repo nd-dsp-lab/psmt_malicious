@@ -161,6 +161,8 @@ void setupVAFParams(double sigma, double kappa, int& domain, double& k, int& L, 
         }
     } else if ((int)sigma == 20) {
         switch (domain) {
+            case 4:   k = 4.5; L = 2; R = 4; n_dep = 0; n_vaf = 7; depth = 13 + 1 ; isNewVAF = false; break;
+            case 16:  k = 4.5; L = 2; R = 16; n_dep = 0; n_vaf = 4; depth = 13 + 3 ; isNewVAF = true; break;
             case 32:  k = 17; L = 4; R = 4; n_dep = 2; n_vaf = 3; depth = 15 ; isNewVAF = true; break;
             case 1024: k = 6.75; L = 2.59; R = 158.54; n_dep = 2; n_vaf = 8; depth = 22; isNewVAF = true; break;
             default: std::cerr << "No matching VAF parameters for domain = " << domain << ". Using default." << std::endl;

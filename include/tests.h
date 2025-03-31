@@ -8,6 +8,7 @@ int testFullPrev();
 int testFullPipeline(double sigma, double kappa);
 int testFullPipeline64();
 int testFullPipelineBinary();
+int testFullPipelineFor20BitDomainVAF();
 
 int testVAFs(
     // VAF paramaeters

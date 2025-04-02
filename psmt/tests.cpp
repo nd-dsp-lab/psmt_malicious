@@ -337,9 +337,15 @@ void testFullPipelineRealData(
         std::cout << "Done!" << std::endl;
 
         // Prepare Query Ctxt
+        std::cout << "Do Query Encryption" << std::endl;
+        auto q1 = std::chrono::high_resolution_clock::now();
         Ciphertext<DCRTPoly> queryCtxt = encryptQuery(
             cc, pk, idMsgVec[0], kappa
         );  
+        auto q2 = std::chrono::high_resolution_clock::now();
+        double qdiff = std::chrono::duration<double>(q2-q1).count();
+        std::cout << "Done!" << std::endl;
+        std::cout << "Time Elapsed: " << qdiff << std::endl;      
 
         size_t querySize = ctxtSize(queryCtxt);
         std::cout << "\nQuery Ciphertext Size (R -> S): " << querySize << std::endl;
@@ -462,10 +468,17 @@ void testFullPipelineRealData(
 
     Plaintext retPtxtEval;
     Plaintext retPtxtisInter;
+
+    std::cout << "Do Result Decryption" << std::endl;
+    auto r1 = std::chrono::high_resolution_clock::now();
     cc->Decrypt(sk, ret.evalRet, &retPtxtEval);
     cc->Decrypt(sk, ret.isInter, &retPtxtisInter);
     std::vector<double> retEvalVec = retPtxtEval->GetRealPackedValue();
     std::vector<double> retInterVec = retPtxtisInter->GetRealPackedValue();
+    auto r2 = std::chrono::high_resolution_clock::now();
+    double rdiff = std::chrono::duration<double>(r2-r1).count();
+    std::cout << "Done!" << std::endl;
+    std::cout << "Time Elapsed: " << rdiff << std::endl;      
 
     std::cout << "Output Values (20)" << std::endl;
     std::cout << std::vector<double>(retEvalVec.begin(), retEvalVec.begin() + 20)  << std::endl;
@@ -580,9 +593,15 @@ void testFullPipelineCompactRealData(
         std::cout << "Done!" << std::endl;
 
         // Prepare Query Ctxt
+        std::cout << "Do Query Encryption" << std::endl;
+        auto q1 = std::chrono::high_resolution_clock::now();
         Ciphertext<DCRTPoly> queryCtxt = encryptQuery(
             cc, pk, idMsgVec[0], kappa
         );  
+        auto q2 = std::chrono::high_resolution_clock::now();
+        double qdiff = std::chrono::duration<double>(q2-q1).count();
+        std::cout << "Done!" << std::endl;
+        std::cout << "Time Elapsed: " << qdiff << std::endl;       
 
         size_t querySize = ctxtSize(queryCtxt);
         std::cout << "\nQuery Ciphertext Size (R -> S): " << querySize << std::endl;
@@ -696,10 +715,17 @@ void testFullPipelineCompactRealData(
 
     Plaintext retPtxtEval;
     Plaintext retPtxtisInter;
+
+    std::cout << "Do Result Decryption" << std::endl;
+    auto r1 = std::chrono::high_resolution_clock::now();
     cc->Decrypt(sk, ret.evalRet, &retPtxtEval);
     cc->Decrypt(sk, ret.isInter, &retPtxtisInter);
     std::vector<double> retEvalVec = retPtxtEval->GetRealPackedValue();
     std::vector<double> retInterVec = retPtxtisInter->GetRealPackedValue();
+    auto r2 = std::chrono::high_resolution_clock::now();
+    double rdiff = std::chrono::duration<double>(r2-r1).count();
+    std::cout << "Done!" << std::endl;
+    std::cout << "Time Elapsed: " << rdiff << std::endl;    
 
     std::cout << "Output Values (20)" << std::endl;
     std::cout << std::vector<double>(retEvalVec.begin(), retEvalVec.begin() + 20)  << std::endl;
@@ -826,9 +852,15 @@ void testFullPipelineRealDataChunks(
         std::cout << "Done!" << std::endl;
 
         // Prepare Query Ctxt
+        std::cout << "Do Query Encryption" << std::endl;
+        auto q1 = std::chrono::high_resolution_clock::now();
         Ciphertext<DCRTPoly> queryCtxt = encryptQuery(
             cc, pk, idMsgVec[0], kappa
         );  
+        auto q2 = std::chrono::high_resolution_clock::now();
+        double qdiff = std::chrono::duration<double>(q2-q1).count();
+        std::cout << "Done!" << std::endl;
+        std::cout << "Time Elapsed: " << qdiff << std::endl;       
 
         // Do Intersection
         std::vector<std::vector<Ciphertext<DCRTPoly>>> interCtxts(numVar);
@@ -959,10 +991,17 @@ void testFullPipelineRealDataChunks(
 
     Plaintext retPtxtEval;
     Plaintext retPtxtisInter;
+
+    std::cout << "Do Result Decryption" << std::endl;
+    auto r1 = std::chrono::high_resolution_clock::now();
     cc->Decrypt(sk, ret.evalRet, &retPtxtEval);
     cc->Decrypt(sk, ret.isInter, &retPtxtisInter);
     std::vector<double> retEvalVec = retPtxtEval->GetRealPackedValue();
     std::vector<double> retInterVec = retPtxtisInter->GetRealPackedValue();
+    auto r2 = std::chrono::high_resolution_clock::now();
+    double rdiff = std::chrono::duration<double>(r2-r1).count();
+    std::cout << "Done!" << std::endl;
+    std::cout << "Time Elapsed: " << rdiff << std::endl;    
 
     std::cout << "Output Values (20)" << std::endl;
     std::cout << std::vector<double>(retEvalVec.begin(), retEvalVec.begin() + 20)  << std::endl;
@@ -1091,9 +1130,15 @@ void testFullPipelineCompactRealDataChunks(
         std::cout << "Done!" << std::endl;
 
         // Prepare Query Ctxt
+        std::cout << "Do Query Encryption" << std::endl;
+        auto q1 = std::chrono::high_resolution_clock::now();
         Ciphertext<DCRTPoly> queryCtxt = encryptQuery(
             cc, pk, idMsgVec[0], kappa
         );  
+        auto q2 = std::chrono::high_resolution_clock::now();
+        double qdiff = std::chrono::duration<double>(q2-q1).count();
+        std::cout << "Done!" << std::endl;
+        std::cout << "Time Elapsed: " << qdiff << std::endl;      
 
         // Do Intersection
         std::vector<std::vector<Ciphertext<DCRTPoly>>> interCtxts(numVar);
@@ -1221,10 +1266,17 @@ void testFullPipelineCompactRealDataChunks(
 
     Plaintext retPtxtEval;
     Plaintext retPtxtisInter;
+    
+    std::cout << "Do Result Decryption" << std::endl;
+    auto r1 = std::chrono::high_resolution_clock::now();
     cc->Decrypt(sk, ret.evalRet, &retPtxtEval);
     cc->Decrypt(sk, ret.isInter, &retPtxtisInter);
     std::vector<double> retEvalVec = retPtxtEval->GetRealPackedValue();
     std::vector<double> retInterVec = retPtxtisInter->GetRealPackedValue();
+    auto r2 = std::chrono::high_resolution_clock::now();
+    double rdiff = std::chrono::duration<double>(r2-r1).count();
+    std::cout << "Done!" << std::endl;
+    std::cout << "Time Elapsed: " << rdiff << std::endl;    
 
     std::cout << "Output Values (20)" << std::endl;
     std::cout << std::vector<double>(retEvalVec.begin(), retEvalVec.begin() + 20)  << std::endl;

@@ -14,7 +14,8 @@ void printUsage() {
               << " -DBName <str>"
               << " -isSim <int>"
               << " -isCompact <int>"
-              << " -itemLen <int>"
+              << " -numChunks <int>"
+              << " -itemLen <int>"              
               << " -scalingModSize <int> (optional, max 59)\n";
 }
 
@@ -61,7 +62,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    bool isCompact = true;
+    // bool isCompact = true;
     if (args["-isCompact"] == "1") {
         isCompact = true;
     } else {
@@ -84,6 +85,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Answer Path: " << ansPath << std::endl;
     std::cout << "Parameter Path: " << paramPath << std::endl;
     std::cout << "Scaling Mod Size: " << scalingModSize << std::endl;
+    std::cout << "Bit Length of IDs: " << actualSize << std::endl;
 
 
     if (numChunks == 0) {

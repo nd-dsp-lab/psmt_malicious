@@ -62,6 +62,14 @@ add_library(psmt_malicious
     ${PROJECT_SOURCE_DIR}/psmt/server.cpp
     ${PROJECT_SOURCE_DIR}/psmt/client.cpp
     ${PROJECT_SOURCE_DIR}/psmt/tests.cpp
+    # For PEPSI
+    ${PROJECT_SOURCE_DIR}/pepsi/core.cpp
+    ${PROJECT_SOURCE_DIR}/pepsi/server.cpp
+    ${PROJECT_SOURCE_DIR}/pepsi/client.cpp
+    ${PROJECT_SOURCE_DIR}/pepsi/tests.cpp
+    ${PROJECT_SOURCE_DIR}/pepsi/fhe_init.cpp
+    ${PROJECT_SOURCE_DIR}/pepsi/main_pepsi.cpp
+
 )
 
 # Let the library see your include/ folder
@@ -69,6 +77,7 @@ target_include_directories(psmt_malicious PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/logreg
     ${PROJECT_SOURCE_DIR}/hashing
+    ${PROJECT_SOURCE_DIR}/pepsi
 )
 
 # Link OpenFHE 
@@ -139,7 +148,7 @@ add_executable(main_logreg
 )
 
 # Let main_vaf see your include/ folder
-target_include_directories(main_hash PRIVATE
+target_include_directories(main_logreg PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/logreg
 )
@@ -167,3 +176,20 @@ target_include_directories(main_hash PRIVATE
 target_link_libraries(main_psmt PRIVATE psmt_malicious)
 
 
+##################################################
+# 2) Build the main executable from main_vaf.cpp
+##################################################
+
+add_executable(main_pepsi
+    ${PROJECT_SOURCE_DIR}/pepsi/main_pepsi.cpp
+)
+
+# Let main_vaf see your include/ folder
+target_include_directories(main_pepsi PRIVATE
+    ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/pepsi
+)
+
+# Finally, link main_vaf:
+
+target_link_libraries(main_pepsi PRIVATE psmt_malicious)

@@ -27,6 +27,28 @@ std::vector<double> genDataNormal(
     return retVec;
 }
 
+std::vector<std::vector<double>> genDataVecNormal(
+    uint32_t numItems,
+    uint32_t itemLen
+) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::normal_distribution<double> dist(0, 1);
+
+    std::vector<std::vector<double>> retVec(numItems);
+
+    #pragma omp parallel for
+    for (uint32_t i = 0; i < numItems; i++) {
+        std::vector<double> _tmp(itemLen, 0);
+        for (uint32_t j = 0; j < itemLen; j++) {
+            _tmp[j] = dist(gen);
+        }
+        retVec[i] = _tmp;
+    }
+    return retVec;
+}
+
+
 
 std::vector<uint64_t> genDataInteger(
     uint32_t numItems
@@ -116,9 +138,13 @@ void testSingleServer() {
     // TODO: 128-bit elements
     std::cout << "Generate Data..." << std::endl;
     // std::vector<uint64_t> idMsgVec = genDataInteger(numItems);
-    std::vector<uint64_t> idMsgVec(numItems);
+    std::vector<std::vector<uint64_t>> idMsgVec(numItems);
     for (uint32_t i = 0; i <numItems; i++) {
-        idMsgVec[i] = i;
+        std::vector<uint64_t> _tmp(2, 0);
+        for (uint32_t j = 0; j < 2; j++) {
+            _tmp[j] = i;
+        }
+        idMsgVec[i] = _tmp;
     }
     std::vector<double> labMsgVec = genDataNormal(numItems);
 
@@ -251,6 +277,7 @@ void testFullPipelineRealData(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
+    uint32_t itemLen,
     bool isSim,
     int scalingMod
 ) {
@@ -297,11 +324,21 @@ void testFullPipelineRealData(
         std::cout << "TOO large DB for running the actual protocol... Reduce the size to 2^18" << std::endl;
     }
 
-    std::vector<uint64_t> idMsgVec = DB.idVec;
+    std::vector<uint64_t> _idMsgVec = DB.idVec;
     std::vector<uint64_t> answer = DB.answer;
-    idMsgVec.resize(numData);
+    _idMsgVec.resize(numData);
     answer.resize(numData);
     std::vector<std::vector<double>> labMsgVecs(numVar);
+
+    // Simulating through dummy values
+    std::vector<std::vector<uint64_t> > idMsgVec(numData);
+    for (uint32_t i = 0; i < numData; i++) {
+        std::vector<uint64_t> _tmp(itemLen);
+        for (uint32_t j = 0; j < itemLen; j++) {
+            _tmp[j] = _idMsgVec[i];
+        }
+        idMsgVec[i] = _tmp;
+    }
 
     for (uint32_t i = 0; i < numVar; i++) {
         std::vector<double> _tmpVec(numData, 0);
@@ -313,11 +350,11 @@ void testFullPipelineRealData(
     }
             
     // Kappa Parameter
-    uint32_t kappa = 8;
+    uint32_t kappa = 8 * itemLen;
 
     // Parameter for VAFs
     VAFParams paramsVAF;
-    paramsVAF.setupVAFParams(64, 8);
+    paramsVAF.setupVAFParams(64 * itemLen, kappa);
 
     VAFParams paramsVAFAgg;
     paramsVAFAgg.setupVAFParamfromDomain(64);
@@ -505,6 +542,7 @@ void testFullPipelineCompactRealData(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
+    uint32_t itemLen,
     bool isSim,
     int scalingMod
 ) {
@@ -552,11 +590,21 @@ void testFullPipelineCompactRealData(
         std::cout << "TOO large DB for running the actual protocol... Reduce the size to 2^18" << std::endl;
     }
 
-    std::vector<uint64_t> idMsgVec = DB.idVec;
+    std::vector<uint64_t> _idMsgVec = DB.idVec;
     std::vector<uint64_t> answer = DB.answer;
-    idMsgVec.resize(numData);
+    _idMsgVec.resize(numData);
     answer.resize(numData);
     std::vector<std::vector<double>> labMsgVecs(numVar);
+
+    // Simulating through dummy values
+    std::vector<std::vector<uint64_t> > idMsgVec(numData);
+    for (uint32_t i = 0; i < numData; i++) {
+        std::vector<uint64_t> _tmp(itemLen);
+        for (uint32_t j = 0; j < itemLen; j++) {
+            _tmp[j] = _idMsgVec[i];
+        }
+        idMsgVec[i] = _tmp;
+    }
 
     for (uint32_t i = 0; i < numVar; i++) {
         std::vector<double> _tmpVec(numData, 0);
@@ -568,11 +616,11 @@ void testFullPipelineCompactRealData(
     }
             
     // Kappa Parameter
-    uint32_t kappa = 8;
+    uint32_t kappa = 8 * itemLen;
 
     // Parameter for VAFs
     VAFParams paramsVAF;
-    paramsVAF.setupVAFParams(64, 8);
+    paramsVAF.setupVAFParams(64 * itemLen, kappa);
     
     VAFParams paramsVAFAgg;
     paramsVAFAgg.setupVAFParamfromDomain(64);
@@ -752,6 +800,7 @@ void testFullPipelineRealDataChunks(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
+    uint32_t itemLen,
     bool isSim,
     int scalingMod,
     uint32_t numChunks
@@ -799,11 +848,21 @@ void testFullPipelineRealDataChunks(
         std::cout << "TOO large DB for running the actual protocol... Reduce the size to 2^18" << std::endl;
     }
 
-    std::vector<uint64_t> idMsgVec = DB.idVec;
+    std::vector<uint64_t> _idMsgVec = DB.idVec;
     std::vector<uint64_t> answer = DB.answer;
-    idMsgVec.resize(numData);
+    _idMsgVec.resize(numData);
     answer.resize(numData);
     std::vector<std::vector<double>> labMsgVecs(numVar);
+
+    // Simulating through dummy values
+    std::vector<std::vector<uint64_t> > idMsgVec(numData);
+    for (uint32_t i = 0; i < numData; i++) {
+        std::vector<uint64_t> _tmp(itemLen);
+        for (uint32_t j = 0; j < itemLen; j++) {
+            _tmp[j] = _idMsgVec[i];
+        }
+        idMsgVec[i] = _tmp;
+    }
 
     for (uint32_t i = 0; i < numVar; i++) {
         std::vector<double> _tmpVec(numData, 0);
@@ -815,11 +874,11 @@ void testFullPipelineRealDataChunks(
     }
             
     // Kappa Parameter
-    uint32_t kappa = 8;
+    uint32_t kappa = 8 * itemLen;
 
     // Parameter for VAFs
     VAFParams paramsVAF;
-    paramsVAF.setupVAFParams(64, 8);
+    paramsVAF.setupVAFParams(64 * itemLen, kappa);
 
     VAFParams paramsVAFAgg;
     paramsVAFAgg.setupVAFParamfromDomain(64);
@@ -1028,6 +1087,7 @@ void testFullPipelineCompactRealDataChunks(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
+    uint32_t itemLen,
     bool isSim,
     int scalingMod,
     uint32_t numChunks
@@ -1035,7 +1095,7 @@ void testFullPipelineCompactRealDataChunks(
     std::cout << "<<< " << "TEST A FULL PIPELINE WITH REAL DATA (COMPACT OPTIMIZATION) / Chunking" << " >>>" << std::endl;
     std::cout << "# of ciphertext chunks by each sender: " << numChunks << std::endl;
     FHEParams params;
-    params.multiplicativeDepth = 42;
+    params.multiplicativeDepth = 41 + itemLen;
     params.ringDim = 1<<17;
     
     params.scalingModSize = scalingMod;
@@ -1076,11 +1136,22 @@ void testFullPipelineCompactRealDataChunks(
         std::cout << "TOO large DB for running the actual protocol... Reduce the size to 2^18" << std::endl;
     }
 
-    std::vector<uint64_t> idMsgVec = DB.idVec;
+    std::vector<uint64_t> _idMsgVec = DB.idVec;
     std::vector<uint64_t> answer = DB.answer;
-    idMsgVec.resize(numData);
+    _idMsgVec.resize(numData);
     answer.resize(numData);
     std::vector<std::vector<double>> labMsgVecs(numVar);
+
+    // Simulating through dummy values
+    std::vector<std::vector<uint64_t> > idMsgVec(numData);
+    for (uint32_t i = 0; i < numData; i++) {
+        std::vector<uint64_t> _tmp(itemLen);
+        for (uint32_t j = 0; j < itemLen; j++) {
+            _tmp[j] = _idMsgVec[i];
+        }
+        idMsgVec[i] = _tmp;
+    }
+
 
     for (uint32_t i = 0; i < numVar; i++) {
         std::vector<double> _tmpVec(numData, 0);
@@ -1092,11 +1163,11 @@ void testFullPipelineCompactRealDataChunks(
     }
             
     // Kappa Parameter
-    uint32_t kappa = 8;
+    uint32_t kappa = 8 * itemLen;
 
     // Parameter for VAFs
     VAFParams paramsVAF;
-    paramsVAF.setupVAFParams(64, 8);
+    paramsVAF.setupVAFParams(64 * itemLen, kappa);
     
     VAFParams paramsVAFAgg;
     paramsVAFAgg.setupVAFParamfromDomain(64);
@@ -1277,6 +1348,244 @@ void testFullPipelineCompactRealDataChunks(
     double rdiff = std::chrono::duration<double>(r2-r1).count();
     std::cout << "Done!" << std::endl;
     std::cout << "Time Elapsed: " << rdiff << std::endl;    
+
+    std::cout << "Output Values (20)" << std::endl;
+    std::cout << std::vector<double>(retEvalVec.begin(), retEvalVec.begin() + 20)  << std::endl;
+    std::cout << std::vector<double>(retInterVec.begin(), retInterVec.begin() + 20)  << std::endl;
+    std::cout << "Intersection Flag: " << retInterVec[paramsLR.rotRange] << std::endl;
+
+    std::cout << "Evaluation Result from Plaintext" << std::endl;
+    std::vector<std::vector<double>> inputVec(numVar);
+
+    for (uint32_t i = 0; i < numVar; i++) {
+        std::vector<double> _tmpVec(1<<16, labMsgVecs[i][0]);
+        inputVec[i] = _tmpVec;
+    }
+
+    std::vector<double> retVecPlain = evalLogRegPlain(
+        inputVec, ptWeights, ptBias, kappa
+    );    
+    std::cout << std::vector<double>(retVecPlain.begin(), retVecPlain.begin() + 20)  << std::endl;
+    std::cout << "Correct Answer? " << answer[0] << std::endl;
+}
+
+void testFullPipelineCompactRealDataHorizontalChunks(
+    std::string DBPath, 
+    std::string ansPath, 
+    std::string paramPath, 
+    uint32_t itemLen,
+    bool isSim,
+    uint32_t numChunks
+) {
+    std::cout << "<<< " << "TEST A FULL PIPELINE WITH REAL DATA (COMPACT OPTIMIZATION) / Horizontal Chunking" << " >>>" << std::endl;
+    std::cout << "# of ciphertext chunks by each sender: " << numChunks << std::endl;
+    FHEParams params;
+    params.multiplicativeDepth = 42;
+    params.ringDim = 1<<17;
+    params.scalingModSize = 44;
+    params.firstModSize = 60;
+
+    FHEContext ctx = InitFHE(params);
+    auto cc = ctx.cryptoContext; 
+    auto pk = ctx.keyPair.publicKey;
+    auto sk = ctx.keyPair.secretKey;
+    GenerateRotationKeys(cc, sk, 1<<17);
+
+    // Read Weights & Bias
+    std::cout << "Reading Parameters..." << std::endl;
+    std::vector<double> paramVec = readParams(paramPath);
+    std::vector<double> ptWeights(paramVec.begin(), paramVec.end() - 1);
+    double ptBias = paramVec[paramVec.size() - 2];    
+    uint32_t numVar = ptWeights.size();
+
+    LogRegParamsCompact paramsLR = constructLRParamsCompact(
+        cc, pk,
+        ptWeights, ptBias, 1<<16, 247, -10, 10
+    );
+    
+    std::cout << "Done! Number of Variables: " << numVar << std::endl;
+
+    // Load and Prepare Real Data
+    std::cout << "Reading Database..." << std::endl;
+    RawDataBase DB = readDatabase(DBPath, ansPath);
+    uint32_t numData = DB.idVec.size();
+    std::cout << "Done! Number of Items: " << numData << std::endl;
+
+    // Preprocess the Database 
+    // To avoid excessive memory overhead for the actual protocol
+    if ((!isSim) && (numData > (1<<18))) {
+        numData = (1<<18);
+        std::cout << "TOO large DB for running the actual protocol... Reduce the size to 2^18" << std::endl;
+    }
+
+    std::vector<uint64_t> _idMsgVec = DB.idVec;
+    std::vector<uint64_t> answer = DB.answer;
+    _idMsgVec.resize(numData);
+    answer.resize(numData);
+    std::vector<std::vector<double>> labMsgVecs(numVar);
+
+    // Simulating through dummy values
+    std::vector<std::vector<uint64_t> > idMsgVec(numData);
+    for (uint32_t i = 0; i < numData; i++) {
+        std::vector<uint64_t> _tmp(itemLen);
+        for (uint32_t j = 0; j < itemLen; j++) {
+            _tmp[j] = _idMsgVec[i];
+        }
+        idMsgVec[i] = _tmp;
+    }
+
+
+    for (uint32_t i = 0; i < numVar; i++) {
+        std::vector<double> _tmpVec(numData, 0);
+        #pragma omp parallel for
+        for (uint32_t j = 0; j < numData; j++) {
+            _tmpVec[j] = DB.payload[j][i];
+        }
+        labMsgVecs[i] = _tmpVec;
+    }
+            
+    // Kappa Parameter
+    uint32_t kappa = 8 * itemLen;
+
+    // Parameter for VAFs
+    VAFParams paramsVAF;
+    paramsVAF.setupVAFParams(64 * itemLen, kappa);
+    
+    VAFParams paramsVAFAgg;
+    paramsVAFAgg.setupVAFParamfromDomain(64);
+
+
+    // Pre-definition for simplicity
+    LSResponse ret;
+    uint32_t chunkSize = (1<<16) / kappa;
+    uint32_t numOfTotalChunks = (numData / chunkSize) + (numData % chunkSize != 0);
+    uint32_t numOfSendersforLabel = (numOfTotalChunks / numChunks) + (numOfTotalChunks % numChunks != 0);
+
+    std::cout << "SETUP DONE!" << std::endl;
+    std::cout << "Number of Total Chunks: \t\t" << numOfTotalChunks << std::endl;
+    std::cout << "Number of Labels: \t\t" << numVar << std::endl;
+    std::cout << "Number of Senders: \t\t" << numOfSendersforLabel << std::endl;
+
+
+    if (numChunks > numOfTotalChunks) {
+        throw std::runtime_error("numChunks cannot be larger than the total number of chunks");
+    }
+
+    // Do simulation or not.
+    if (isSim) {
+        std::cout << "SIMulation of the protocol for a single server & leader server" << std::endl;
+
+        // Construct a database for a single sender
+        std::cout << "Constructing Databases for the first server..." << std::endl;
+        EncryptedHorizontalDB DBfromFirstServer = constructHorizontalDB(
+            cc, pk, idMsgVec, labMsgVecs, 0.0, kappa
+        );
+        std::cout << "Done!" << std::endl;
+
+        // Prepare Query Ctxt
+        Ciphertext<DCRTPoly> queryCtxt = encryptQuery(
+            cc, pk, idMsgVec[0], kappa
+        );  
+
+        // Do Intersection
+        std::vector<Ciphertext<DCRTPoly>> interCtxts(numOfTotalChunks);
+        std::vector<EncryptedHorizontalChunk> chunksForFirstServer(
+            DBfromFirstServer.chunks.begin(), DBfromFirstServer.chunks.begin() + numChunks
+        );
+
+        std::cout << "Do Local Server Operations" << std::endl;
+        auto t1 = std::chrono::high_resolution_clock::now();
+
+        // Local Server takes first chunks
+        interCtxts[0] = compInterCompactHorizontalChunks(cc, paramsVAF, chunksForFirstServer, queryCtxt, 0, paramsLR.rotRange);
+
+        auto t2 = std::chrono::high_resolution_clock::now();
+        double tdiff = std::chrono::duration<double>(t2-t1).count();
+        std::cout << "Done!" << std::endl;
+        std::cout << "Time Elapsed: " << tdiff << std::endl;        
+        // uint32_t lvlinterCtxt = interCtxts[0]->GetLevel();
+
+        // Simulating the resulting ciphertexts from other senders        
+        std::cout << "Simulating other servers' outputs" << std::endl;
+
+        #pragma omp parallel for 
+        for (uint32_t i = 1; i < numOfTotalChunks; i++) {
+            std::vector<double> _tmpVec(1<<16, 0.0);
+            Plaintext _ptxt = cc->MakeCKKSPackedPlaintext(_tmpVec);
+            interCtxts[i] = cc->Encrypt(_ptxt, pk);
+        }
+        std::cout << "Done!" << std::endl;
+
+        // Do Logistic Regression
+        std::cout << "Do Leader Server Operations" << std::endl;
+        auto t1_ls = std::chrono::high_resolution_clock::now();
+        ret = evalCircuitCompact(
+            cc, interCtxts, paramsVAFAgg, paramsLR, kappa
+        );
+        auto t2_ls = std::chrono::high_resolution_clock::now();
+        double tdiff_ls = std::chrono::duration<double>(t2_ls-t1_ls).count();
+        std::cout << "Done!" << std::endl;
+        std::cout << "Time Elapsed: " << tdiff_ls << std::endl;        
+
+    } else {
+        throw std::runtime_error("To be implemented soon!");
+
+        std::cout << "ACTUAL run of the protocol for ALL servers." << std::endl;
+
+        // Encrypt the database 
+        std::cout << "Constructing Databases..." << std::endl;
+        std::vector<EncryptedDB> DBfromServers(numVar);
+        for (uint32_t i = 0; i < numVar; i++) {
+            DBfromServers[i] = constructDB(
+                cc, pk,
+                idMsgVec, labMsgVecs[i], 0.0, kappa
+            );
+        }
+        std::cout << "Done!" << std::endl;
+
+        // Prepare Query Ctxt
+        Ciphertext<DCRTPoly> queryCtxt = encryptQuery(
+            cc, pk, idMsgVec[0], kappa
+        );
+
+        std::cout << "Do Local Server Operations" << std::endl;
+
+        auto t1 = std::chrono::high_resolution_clock::now();
+        std::vector<Ciphertext<DCRTPoly>> interCtxts(numVar);
+        for (uint32_t i = 0; i < numVar; i++) {
+            interCtxts[i] = compInterCompactDB(
+                cc, paramsVAF, DBfromServers[i], queryCtxt, i, paramsLR.rotRange
+            );
+        }    
+        auto t2 = std::chrono::high_resolution_clock::now();
+        double tdiff = std::chrono::duration<double>(t2-t1).count();
+
+        std::cout << "Done!" << std::endl;
+        std::cout << "Time Elapsed (TOTAL): " << tdiff << std::endl;
+        std::cout << "Time Elapsed (PER SERVER): " << tdiff / numVar << std::endl;
+
+        std::cout << "Do Leader Server Operations" << std::endl;
+
+        auto t1_ls = std::chrono::high_resolution_clock::now();
+        ret = evalCircuitCompact(
+            cc, interCtxts, paramsVAFAgg, paramsLR, kappa
+        );
+        auto t2_ls = std::chrono::high_resolution_clock::now();
+        double tdiff_ls = std::chrono::duration<double>(t2_ls-t1_ls).count();
+        std::cout << "Done!" << std::endl;
+        std::cout << "Time Elapsed: " << tdiff_ls << std::endl;        
+
+    }
+
+    std::cout << "Level of the Eval Ctxt: " << ret.evalRet->GetLevel() << std::endl;
+    std::cout << "Level of the Flag Ctxt: " << ret.isInter->GetLevel() << std::endl;
+
+    Plaintext retPtxtEval;
+    Plaintext retPtxtisInter;
+    cc->Decrypt(sk, ret.evalRet, &retPtxtEval);
+    cc->Decrypt(sk, ret.isInter, &retPtxtisInter);
+    std::vector<double> retEvalVec = retPtxtEval->GetRealPackedValue();
+    std::vector<double> retInterVec = retPtxtisInter->GetRealPackedValue();
 
     std::cout << "Output Values (20)" << std::endl;
     std::cout << std::vector<double>(retEvalVec.begin(), retEvalVec.begin() + 20)  << std::endl;

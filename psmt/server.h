@@ -9,12 +9,25 @@ using namespace lbcrypto;
 
 #define MAX_NUM_CORES 48
 
+typedef struct _EncryptedHorizontalChunk {
+    Ciphertext<DCRTPoly> idCtxt;
+    std::vector<Ciphertext<DCRTPoly>> labelCtxt;
+    Ciphertext<DCRTPoly> stat;
+    uint32_t kappa;
+} EncryptedHorizontalChunk;
+
 typedef struct _EncryptedChunk {
     Ciphertext<DCRTPoly> idCtxt;
     Ciphertext<DCRTPoly> labelCtxt;
     Ciphertext<DCRTPoly> stat;
     uint32_t kappa;
 } EncryptedChunk;
+
+typedef struct _EncryptedHorizontalDB {
+    std::vector<EncryptedHorizontalChunk> chunks;
+    Ciphertext<DCRTPoly> stat;
+    uint32_t kappa; 
+} EncryptedHorizontalDB;
 
 typedef struct _EncryptedDB {
     std::vector<EncryptedChunk> chunks;
@@ -27,10 +40,19 @@ typedef struct _LSResponse {
     Ciphertext<DCRTPoly> isInter;
 } LSResponse;
 
+EncryptedHorizontalDB constructHorizontalDB(
+    CryptoContext<DCRTPoly> cc,
+    PublicKey<DCRTPoly> pk,
+    std::vector<std::vector<uint64_t>> idMsgVec,
+    std::vector<std::vector<double>> labMsgVec,
+    double statVal,
+    uint32_t kappa
+);
+
 EncryptedDB constructDB(
     CryptoContext<DCRTPoly> cc,
     PublicKey<DCRTPoly> pk,
-    std::vector<uint64_t> idMsgVec,
+    std::vector<std::vector<uint64_t>> idMsgVec,
     std::vector<double> labMsgVec,
     double statVal,
     uint32_t kappa
@@ -58,6 +80,15 @@ Ciphertext<DCRTPoly> compInterCompactChunks(
     uint32_t rotRange
 );
 
+Ciphertext<DCRTPoly> compInterCompactHorizontalChunks(
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    std::vector<EncryptedHorizontalChunk> chunks,
+    Ciphertext<DCRTPoly> queryCtxt,
+    uint32_t serverIdx,
+    uint32_t rotRange
+);
+
 
 Ciphertext<DCRTPoly> compInterDB(
     CryptoContext<DCRTPoly> cc,
@@ -75,6 +106,14 @@ Ciphertext<DCRTPoly> compInterCompactDB(
     uint32_t rotRange
 );
 
+Ciphertext<DCRTPoly> compInterCompactHorizontalDB(
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    EncryptedHorizontalDB DB,
+    Ciphertext<DCRTPoly> queryCtxt,
+    uint32_t serverIdx,
+    uint32_t rotRange
+);
 
 
 LSResponse evalCircuit(

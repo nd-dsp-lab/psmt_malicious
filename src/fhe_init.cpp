@@ -7,6 +7,7 @@ FHEContext InitFHE(const FHEParams &params) {
     FHEContext context;
     CCParams<CryptoContextCKKSRNS> cryptoParams;
 
+    //cryptoParams.SetExecutionMode(EXEC_EVALUATION);
 
     cryptoParams.SetMultiplicativeDepth(params.multiplicativeDepth);
     cryptoParams.SetScalingModSize(params.scalingModSize);
@@ -14,7 +15,7 @@ FHEContext InitFHE(const FHEParams &params) {
     cryptoParams.SetRingDim(params.ringDim);
     
     cryptoParams.SetScalingTechnique(FLEXIBLEAUTOEXT);
-    //cryptoParams.SetExecutionMode(EXEC_EVALUATION);
+
 
     cryptoParams.SetNoiseEstimate(39);  // max. noise is 39 for 64-bit OpenFHE
 
@@ -56,6 +57,8 @@ FHEContext InitFHE(const FHEParams &params) {
     int32_t n = context.cryptoContext->GetCryptoParameters()->GetElementParams()->GetCyclotomicOrder() / 2;
     std::vector<int32_t> indexList = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -n + 2, -n + 3, n - 1, n - 2, -1, -2, -3, -4, -5}; // depends on the k-value
     context.cryptoContext->EvalRotateKeyGen(context.keyPair.secretKey, indexList);
+
+    std::cout << cryptoParams << std::endl;
 
     return context;
 }

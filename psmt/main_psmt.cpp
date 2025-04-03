@@ -17,6 +17,7 @@ void printUsage() {
               << " -numChunks <int>"
               << " -itemLen <int>"              
               << " -scalingModSize <int> (optional, max 59)\n";
+
 }
 
 int main(int argc, char* argv[]) {
@@ -62,12 +63,14 @@ int main(int argc, char* argv[]) {
         }
     }
 
+
     // bool isCompact = true;
     if (args["-isCompact"] == "1") {
         isCompact = true;
     } else {
         isCompact = false;
     }    
+
     std::uint32_t numChunks = 0; 
     numChunks = stoi(args["-numChunks"]);
     // std::uint32_t isHorizontal = 0; 

@@ -4,6 +4,7 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
+                "${workspaceFolder}/pepsi",
                 "/usr/local/include/openfhe/**",
                 "/usr/local/include/openfhe",
                 "/usr/local/include/openfhe/core",

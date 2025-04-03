@@ -17,19 +17,23 @@ The program requires three types of files: (NAME: name of the database)
 After building the project, you can run the program `main_psmt` through the following command line.
 
 ```
-./main_psmt -DBPath <str> -DBName <str> -isSim <int> -isCompact <int> -numChunks <int>
+./main_psmt -DBPath <str> -DBName <str> -isSim <int> -isCompact <int> -numChunks <int> -itemLen <int>
 ```
 
-Here, `-isSim`, `-isCompact`, `-numChunks` denotes the following setting. 
+Here, `-isSim`, `-isCompact`, `-numChunks`, `-itemLen` denotes the following setting. 
 
 - `-isSim`: Decide to simulate the results from other servers or not. If 0, then it computes all the operations for all the participated servers. Default is 1.
 - `-isCompact`: Decide to use a compressed representation of the labels. This reduces the cost for logistic regression. This feature is enabled when `-isCompact=1`. Default is 1.
 - `-numChunks`: Set the number of ID ciphertexts held by each sender (horizontal segmentation of the database). This feature is disabled when `-numChunks=0`. Default is 0.
+- `-itemLen`: Set the length of IDs. The actual length is `itemLen * 64`.
 
 For example, if your database is placed in "./data/" and the name of the database is CCTFD, then the command becomes
 
 ```
-./main_psmt -DBPath ./data/ -DBName CCTFD -isSim 1 -isCompact 1 -numChunks 0
+./main_psmt -DBPath ./data/ -DBName CCTFD -isSim 1 -isCompact 1 -numChunks 0 -itemLen 2
 ```
+
+This code assumes that the length of each ID is 128-bits.
+
 
 ###### Enjoy!

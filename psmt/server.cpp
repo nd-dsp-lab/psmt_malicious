@@ -2,14 +2,22 @@
 #include "../logreg/core.h"
 #include "../include/core.h"
 
-std::vector<uint64_t> chunkDataset(uint64_t item, uint32_t kappa) {
+std::vector<uint64_t> chunkDataset(
+    std::vector<uint64_t> item, 
+    uint32_t kappa
+) {
     std::vector<uint64_t> ret(kappa);
     uint64_t maskLen = 64 / kappa;
     uint64_t masking = ((uint64_t)(1) << maskLen) - 1;
-
-    for (uint32_t i = 0; i < kappa; i++) {
-        ret[kappa - i - 1] = item & masking;
-        item >>= maskLen;
+    uint32_t subKappa = kappa / item.size();
+    
+    for (uint32_t i = 0; i < item.size(); i++) {
+        uint64_t curr_item = item[i];
+        uint32_t offset = i * subKappa;
+        for (uint32_t j = 0; j < subKappa; j++) {
+            ret[offset + j] = curr_item & masking;
+            curr_item >>= maskLen;
+        }
     }
     return ret;
 }
@@ -21,7 +29,7 @@ std::vector<uint64_t> chunkDataset(uint64_t item, uint32_t kappa) {
 EncryptedDB constructDB(
     CryptoContext<DCRTPoly> cc,
     PublicKey<DCRTPoly> pk,
-    std::vector<uint64_t> idMsgVec,
+    std::vector<std::vector<uint64_t>> idMsgVec,
     std::vector<double> labMsgVec,
     double statVal,
     uint32_t kappa
@@ -89,6 +97,105 @@ EncryptedDB constructDB(
 }
 
 
+// Horizontal Database
+EncryptedHorizontalDB constructHorizontalDB(
+    CryptoContext<DCRTPoly> cc,
+    PublicKey<DCRTPoly> pk,
+    std::vector<std::vector<uint64_t>> idMsgVec,
+    std::vector<std::vector<double>> labMsgVec,
+    double statVal,
+    uint32_t kappa
+) {
+    // 
+    uint32_t numItems = idMsgVec.size();
+    // Pre-process the idMsgVec
+    std::vector<std::vector<uint64_t>> chunkedDB(numItems);
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (uint32_t i = 0; i < numItems; i++) {
+        chunkedDB[i] = chunkDataset(idMsgVec[i], kappa);
+    }
+
+    // Encrypt the database and label
+    // We will manage the database by each "chunks"
+    uint32_t chunkSize = (1<<16) / kappa;
+    uint32_t numChunk = numItems / chunkSize + (numItems % chunkSize != 0);
+
+    // Label Chunking
+    uint32_t numLabels = labMsgVec.size();
+    uint32_t numLabelChunk = numLabels / kappa + (numLabels % kappa != 0);
+
+    // Prepare Statistics
+    std::vector<double> statVec(1<<16, 0.0);
+    for (uint32_t i = 0; i < chunkSize; i++) {
+        statVec[i * kappa] = statVal;
+    }
+    Plaintext ptxtStat = cc->MakeCKKSPackedPlaintext(statVec);
+    Ciphertext<DCRTPoly> stat = cc->Encrypt(ptxtStat, pk);
+
+
+    std::vector<EncryptedHorizontalChunk> chunks(numChunk);
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (uint32_t i = 0; i < numChunk; i++) {
+        uint32_t offset = chunkSize * i;
+
+        // Read Database
+        std::vector<double> _tmpIdVec(1<<16, 0.0);
+        for (uint32_t j = 0; j < chunkSize; j++) {
+            
+
+            // Encoding of IDVecs
+            for (uint32_t k = 0; k < kappa; k++) {
+                if (offset + j >= numItems) {
+                    // Dummy Value
+                    _tmpIdVec[j * kappa + k] = -1;
+                } else {
+                    _tmpIdVec[j * kappa + k] = chunkedDB[offset + j][k];                
+                }                
+            }
+        }
+        Plaintext ptxtID = cc->MakeCKKSPackedPlaintext(_tmpIdVec);
+        Ciphertext<DCRTPoly> idCtxt = cc->Encrypt(ptxtID, pk);
+
+        // Label Encoding
+        // TODO: Optimization
+        Plaintext ptxtLab;
+        std::vector<Ciphertext<DCRTPoly>> labelCtxt(numLabelChunk);
+        for (uint32_t j = 0; j < numLabelChunk; j++) {
+            std::vector<double> _tmpLabVec(1<<16, 0);
+            uint32_t labOffset = j * kappa;
+            for (uint32_t k = 0; k < chunkSize; k++) {
+                for (uint32_t l = 0; l < kappa; l++) {
+                    // Dummy Value
+                    if (j * kappa + l >= labOffset) {
+                        _tmpLabVec[k * kappa + l] = 0;
+                    } else {
+                        _tmpLabVec[k * kappa + l] = labMsgVec[j * kappa + l][offset + k];
+                    }
+                }
+            }
+            ptxtLab = cc->MakeCKKSPackedPlaintext(_tmpLabVec);
+            labelCtxt[j] = cc->Encrypt(ptxtLab, pk);
+        }
+
+
+        // Encrypt Data        
+        chunks[i] = EncryptedHorizontalChunk {
+            idCtxt,
+            labelCtxt,
+            stat,
+            kappa
+        };
+    }
+
+    // Done!
+    return EncryptedHorizontalDB {
+        chunks, stat, kappa
+    };
+}
+
+
 // Useful tool
 Ciphertext<DCRTPoly> preserveSlotZero(
     CryptoContext<DCRTPoly> cc,
@@ -146,6 +253,7 @@ Ciphertext<DCRTPoly> compInterChunks (
         vafResultVec[i] = cc->EvalMult(vafResultVec[i], maskPtxt);
 
         // Label Embedding
+
         labResultVec[i] = cc->EvalMult(vafResultVec[i], chunks[i].labelCtxt);
     }
     // Additive Aggregation
@@ -246,6 +354,107 @@ Ciphertext<DCRTPoly> compInterCompactChunks(
     return ret;
 }
 
+// Horizontal Chunks
+// Only Supports for Compact Representation
+Ciphertext<DCRTPoly> compInterCompactHorizontalChunks(
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    std::vector<EncryptedHorizontalChunk> chunks,
+    Ciphertext<DCRTPoly> queryCtxt,
+    uint32_t serverIdx,
+    uint32_t rotRange
+) {
+    uint32_t numChunks = chunks.size();
+    uint32_t kappa = chunks[0].kappa;
+    uint32_t numLabelChunks = chunks[0].labelCtxt.size();
+
+    // Step 1. Evaluate VAF
+    std::vector<Ciphertext<DCRTPoly>> vafResultVec(numChunks);
+    std::vector<std::vector<Ciphertext<DCRTPoly>>> labResultVec(numLabelChunks);
+
+    for (uint32_t i = 0; i < numLabelChunks; i++) {
+        std::vector<Ciphertext<DCRTPoly>> _tmp(numChunks);
+        labResultVec[i] = _tmp;
+    }
+
+    // Masking Vector
+    std::vector<double> _tmpVec(1<<16, 0.0);
+    for (uint32_t i = 0;  i < (1<<16); i += kappa) {
+        _tmpVec[i] = 1;
+    }
+    Plaintext maskPtxt = cc->MakeCKKSPackedPlaintext(_tmpVec);
+    // std::cout << DB.idVec.size() << std::endl;
+
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    for (uint32_t i = 0; i < numChunks; i++) {
+        vafResultVec[i] = cc->EvalSub(chunks[i].idCtxt, queryCtxt);
+        // Evaluate VAF HERE
+        vafResultVec[i] = fusedVAFfromParams(cc, vafResultVec[i], params);
+
+        // Rotation & Multiplication
+        vafResultVec[i] = preserveSlotZero(cc, vafResultVec[i], kappa);
+
+        // Final Masking
+        vafResultVec[i] = cc->EvalMult(vafResultVec[i], maskPtxt);
+
+        // Prepare for Label Extraction
+        Ciphertext<DCRTPoly> _tmp;
+        for (uint32_t j = 1; j < kappa; j *= 2) {
+            _tmp = cc->EvalRotate(vafResultVec[i], -j);
+            vafResultVec[i] = cc->EvalAdd(vafResultVec[i], _tmp);
+        }
+
+        // Do Label Extraction
+        for (uint32_t j = 0; j < numLabelChunks; j++) {
+            labResultVec[j][i] = cc->EvalMult(vafResultVec[i], chunks[i].labelCtxt[j]);
+        }
+    }
+    // Additive Aggregation
+    Ciphertext<DCRTPoly> vafResult = cc->EvalAddMany(vafResultVec);
+
+    // Rotation & Addition
+    Ciphertext<DCRTPoly> _tmp;
+    for (uint32_t i = kappa; i < 65536; i = i * 2) {
+        _tmp = cc->EvalRotate(vafResult, i);
+        vafResult = cc->EvalAdd(vafResult, _tmp);
+    }
+
+
+    std::vector<Ciphertext<DCRTPoly>> labResults(numLabelChunks);
+
+    // TODO: Do Parallelization...?
+    for (uint32_t i = 0; i < numLabelChunks; i++) {
+        labResults[i] = cc->EvalAddMany(labResultVec[i]);
+
+        for (uint32_t j = kappa; j < 65536; j *= 2) {
+            _tmp = cc->EvalRotate(labResults[i], j);
+            labResults[i] = cc->EvalAdd(labResults[i], _tmp);    
+        }        
+
+        // Choice Statistics
+        Ciphertext<DCRTPoly> ret = labResults[i]->Clone();
+        _tmp = cc->EvalSub(1.0, vafResult);
+        _tmp = cc->EvalMult(_tmp, chunks[0].stat);
+        cc->EvalAddInPlace(ret, _tmp);   
+        
+        std::vector<double> _maskFinalLab(1<<16, 0); 
+        uint32_t offset = i * kappa;
+        for (uint32_t j = 0; j < kappa; j++) {
+            _maskFinalLab[offset + j] = 1;
+        }
+        Plaintext _ptxt = cc->MakeCKKSPackedPlaintext(_maskFinalLab);
+        labResults[i] = cc->EvalMult(labResults[i], _ptxt);
+    }
+
+    std::vector<double> _maskFinalID(1<<16, 0); _maskFinalID[rotRange] = 1;
+    Ciphertext<DCRTPoly> ret = cc->EvalAddMany(labResults);
+    Plaintext _ptxt = cc->MakeCKKSPackedPlaintext(_maskFinalID);
+    _tmp = cc->EvalMult(vafResult, _ptxt);
+    cc->EvalAddInPlace(ret, _tmp);
+    return ret;
+}
+
+
 
 // Do Intersection
 Ciphertext<DCRTPoly> compInterDB(
@@ -269,6 +478,19 @@ Ciphertext<DCRTPoly> compInterCompactDB(
 ) {
     // Just run the intersection over all chunks
     return compInterCompactChunks(cc, params, DB.chunks, queryCtxt, serverIdx, rotRange);
+}
+
+// A protocol returning Compact Representation
+Ciphertext<DCRTPoly> compInterCompactHorizontalDB(
+    CryptoContext<DCRTPoly> cc,
+    VAFParams params,
+    EncryptedHorizontalDB DB,
+    Ciphertext<DCRTPoly> queryCtxt,
+    uint32_t serverIdx,
+    uint32_t rotRange
+) {
+    // Just run the intersection over all chunks
+    return compInterCompactHorizontalChunks(cc, params, DB.chunks, queryCtxt, serverIdx, rotRange);
 }
 
 // Operations for the Leader Server

@@ -3,7 +3,7 @@
 Ciphertext<DCRTPoly> encryptQuery(
     CryptoContext<DCRTPoly> cc,
     PublicKey<DCRTPoly> pk,
-    uint64_t item,
+    std::vector<uint64_t> item,
     uint32_t kappa
 ) {
     // Chunk the data 
@@ -11,9 +11,16 @@ Ciphertext<DCRTPoly> encryptQuery(
     uint32_t mask = ((uint64_t)(1) << maskLen) - 1;
 
     std::vector<uint64_t> chunkItem(kappa);
-    for (uint32_t i = 0; i < kappa; i++) {
-        chunkItem[kappa - i - 1] = item & mask;
-        item >>= maskLen;
+    uint32_t subKappa = kappa / item.size();
+
+    for (uint32_t i = 0; i < item.size() ; i++) {
+        uint64_t currItem = item[i];
+        uint32_t offset = subKappa * i;
+
+        for (uint32_t j = 0; j < subKappa; j++) {
+            chunkItem[offset + j] = currItem & mask;
+            currItem >>= maskLen;
+        }
     }
 
     // Prepare the Query Cipehrtext

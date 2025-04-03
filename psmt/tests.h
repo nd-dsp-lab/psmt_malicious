@@ -21,6 +21,7 @@ void testFullPipelineRealData(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath,
+    uint32_t itemLen,
     bool isSim
 );
 
@@ -28,6 +29,7 @@ void testFullPipelineCompactRealData(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
+    uint32_t itemLen,
     bool isSim
 );
 
@@ -35,6 +37,7 @@ void testFullPipelineRealDataChunks(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
+    uint32_t itemLen,
     bool isSim,
     uint32_t numChunks
 );
@@ -43,8 +46,17 @@ void testFullPipelineCompactRealDataChunks(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
+    uint32_t itemLen,
     bool isSim,
     uint32_t numChunks
 );
+
+// void testFullPipelineCompactRealDataHorizontalChunks(
+//     std::string DBPath, 
+//     std::string ansPath, 
+//     std::string paramPath, 
+//     bool isSim,
+//     uint32_t numChunks
+// );
 
 #endif

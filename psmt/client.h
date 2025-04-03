@@ -7,7 +7,7 @@ using namespace lbcrypto;
 Ciphertext<DCRTPoly> encryptQuery(
     CryptoContext<DCRTPoly> cc,
     PublicKey<DCRTPoly> pk,
-    uint64_t item,
+    std::vector<uint64_t> item,
     uint32_t kappa
 );
 

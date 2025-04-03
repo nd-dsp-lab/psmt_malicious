@@ -1,28 +1,18 @@
-#include "fhe_init.h"
+#include "fhe_init_pepsi.h"
 #include <iostream>
 
 using namespace lbcrypto;
 
-FHEContext InitFHE(const FHEParams &params) {
+FHEContext InitFHEBFV(const FHEParamsBFV &params) {
     FHEContext context;
-    CCParams<CryptoContextCKKSRNS> cryptoParams;
-    cryptoParams.SetExecutionMode(EXEC_EVALUATION);
-    cryptoParams.SetMultiplicativeDepth(params.multiplicativeDepth);
-    cryptoParams.SetScalingModSize(params.scalingModSize);
-    cryptoParams.SetFirstModSize(params.firstModSize);
-    cryptoParams.SetRingDim(params.ringDim);
-    cryptoParams.SetScalingTechnique(FLEXIBLEAUTOEXT);
-    // cryptoParams.SetMultipartyMode(NOISE_FLOODING_MULTIPARTY);
-
-
-    // cryptoParams.SetNoiseEstimate(20);
-    // cryptoParams.SetMultipartyMode(NOISE_FLOODING_MULTIPARTY);    
-    // cryptoParams.SetStatisticalSecurity(30);
-    // cryptoParams.SetNumAdversarialQueries(1);
-    // cryptoParams.SetDecryptionNoiseMode(NOISE_FLOODING_DECRYPT);
-
+    CCParams<CryptoContextBFVRNS> CCparams;
+    CCparams.SetRingDim(params.ringDim);
+    CCparams.SetMultiplicativeDepth(params.multiplicativeDepth);
+    CCparams.SetPlaintextModulus(params.ptModulus);
+    CCparams.SetMultipartyMode(NOISE_FLOODING_MULTIPARTY);
+    
     std::cout << "Generating CryptoContext..." << std::endl;
-    context.cryptoContext = GenCryptoContext(cryptoParams);
+    context.cryptoContext = GenCryptoContext(CCparams);
     context.cryptoContext->Enable(PKE);
     context.cryptoContext->Enable(KEYSWITCH);
     context.cryptoContext->Enable(LEVELEDSHE);
@@ -38,7 +28,7 @@ FHEContext InitFHE(const FHEParams &params) {
     std::vector<int32_t> indexList = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -n + 2, -n + 3, n - 1, n - 2, -1, -2, -3, -4, -5}; // depends on the k-value
     context.cryptoContext->EvalRotateKeyGen(context.keyPair.secretKey, indexList);
 
-    std::cout << cryptoParams << std::endl;
+    // std::cout << CCparams << std::endl;
 
     return context;
 }

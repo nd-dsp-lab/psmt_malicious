@@ -20,15 +20,19 @@ void testLeaderServer();
 void testFullPipelineRealData(
     std::string DBPath, 
     std::string ansPath, 
-    std::string paramPath,
-    bool isSim
+    std::string paramPath, 
+    uint32_t itemLen,
+    bool isSim,
+    int scalingMod
 );
 
 void testFullPipelineCompactRealData(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
-    bool isSim
+    uint32_t itemLen,
+    bool isSim,
+    int scalingMod
 );
 
 

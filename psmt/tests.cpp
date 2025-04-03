@@ -1,5 +1,16 @@
 #include "../psmt/tests.h"
 
+size_t ctxtSize(Ciphertext<DCRTPoly>& ctxt) {
+  size_t size = 0;
+  for (auto& element : ctxt->GetElements()) {
+    for (auto& subelements : element.GetAllElements()) {
+      auto length = subelements.GetLength();
+      size += length * sizeof(subelements[0]);
+    }
+  }
+  return size;
+};
+
 std::vector<double> genDataNormal(
     uint32_t numItems
 ) {
@@ -267,13 +278,18 @@ void testFullPipelineRealData(
     std::string ansPath, 
     std::string paramPath, 
     uint32_t itemLen,
-    bool isSim
+    bool isSim,
+    int scalingMod
 ) {
     std::cout << "<<< " << "TEST A FULL PIPELINE WITH REAL DATA" << ">>>" << std::endl;
     FHEParams params;
     params.multiplicativeDepth = 41;
     params.ringDim = 1<<17;
-    params.scalingModSize = 44;
+
+
+    params.scalingModSize = scalingMod;
+    std::cout << "Scaling mod size (optimum=44) is set to " << params.scalingModSize << std::endl;
+
     params.firstModSize = 60;
 
     FHEContext ctx = InitFHE(params);
@@ -362,6 +378,9 @@ void testFullPipelineRealData(
             cc, pk, idMsgVec[0], kappa
         );  
 
+        size_t querySize = ctxtSize(queryCtxt);
+        std::cout << "\nQuery Ciphertext Size (R -> S): " << querySize << std::endl;
+
         // Do Intersection
         std::vector<Ciphertext<DCRTPoly>> interCtxts(numVar);
         std::cout << "Do Local Server Operations" << std::endl;
@@ -370,7 +389,10 @@ void testFullPipelineRealData(
         auto t2 = std::chrono::high_resolution_clock::now();
         double tdiff = std::chrono::duration<double>(t2-t1).count();
         std::cout << "Done!" << std::endl;
-        std::cout << "Time Elapsed: " << tdiff << std::endl;        
+        std::cout << "Time Elapsed: " << tdiff << std::endl;      
+
+        size_t resultSize = ctxtSize(interCtxts[0]);
+        std::cout << "\nResult ciphertext Size (Computing Sender, S->L): " << resultSize << std::endl;  
 
         // DEBUG
         // Plaintext _ptxtDebug;
@@ -402,6 +424,9 @@ void testFullPipelineRealData(
         }
         std::cout << "Done!" << std::endl;
 
+        size_t mockSize = ctxtSize(interCtxts[1]);
+        std::cout << "\nResult ciphertext Size (Mock Senders, S->L): " << mockSize << std::endl;  
+
         // Do Logistic Regression
         std::cout << "Do Leader Server Operations" << std::endl;
         auto t1_ls = std::chrono::high_resolution_clock::now();
@@ -411,7 +436,16 @@ void testFullPipelineRealData(
         auto t2_ls = std::chrono::high_resolution_clock::now();
         double tdiff_ls = std::chrono::duration<double>(t2_ls-t1_ls).count();
         std::cout << "Done!" << std::endl;
-        std::cout << "Time Elapsed: " << tdiff_ls << std::endl;        
+        std::cout << "Time Elapsed: " << tdiff_ls << std::endl;  
+
+        auto answer = ret.evalRet;
+        // rescale this answer ciphertext ********
+        auto flag = ret.isInter;
+
+        size_t ansSize = ctxtSize(answer);
+        size_t flagSize = ctxtSize(flag);
+        std::cout << "\nReturn ciphertext size (Answer, Leader sender, L->S): " << ansSize << std::endl;       
+        std::cout << "\nReturn ciphertext size (Flag, Leader sender, L->S): " << flagSize << std::endl;        
 
     } else {
         std::cout << "ACTUAL run of the protocol for ALL servers." << std::endl;
@@ -490,19 +524,24 @@ void testFullPipelineRealData(
 }
 
 
-// Full pipeline with Compact label ciphertexts optimziation
+// Full pipeline with Compact label ciphertexts optimization
 void testFullPipelineCompactRealData(
     std::string DBPath, 
     std::string ansPath, 
     std::string paramPath, 
     uint32_t itemLen,
-    bool isSim
+    bool isSim,
+    int scalingMod
 ) {
     std::cout << "<<< " << "TEST A FULL PIPELINE WITH REAL DATA (COMPACT OPTIMIZATION)" << " >>>" << std::endl;
     FHEParams params;
     params.multiplicativeDepth = 42;
     params.ringDim = 1<<17;
-    params.scalingModSize = 44;
+
+
+    params.scalingModSize = scalingMod;
+    std::cout << "Scaling mod (optimum=44) size is set to " << params.scalingModSize << std::endl;
+
     params.firstModSize = 60;
 
     FHEContext ctx = InitFHE(params);
@@ -593,6 +632,9 @@ void testFullPipelineCompactRealData(
             cc, pk, idMsgVec[0], kappa
         );  
 
+        size_t querySize = ctxtSize(queryCtxt);
+        std::cout << "\nQuery Ciphertext Size (R -> S): " << querySize << std::endl;
+
         // Do Intersection
         std::vector<Ciphertext<DCRTPoly>> interCtxts(numVar);
         std::cout << "Do Local Server Operations" << std::endl;
@@ -601,7 +643,10 @@ void testFullPipelineCompactRealData(
         auto t2 = std::chrono::high_resolution_clock::now();
         double tdiff = std::chrono::duration<double>(t2-t1).count();
         std::cout << "Done!" << std::endl;
-        std::cout << "Time Elapsed: " << tdiff << std::endl;        
+        std::cout << "Time Elapsed: " << tdiff << std::endl;     
+
+        size_t resultSize = ctxtSize(interCtxts[0]);
+        std::cout << "\nResult ciphertext Size (Computing Sender, S->L): " << resultSize << std::endl;     
 
         uint32_t lvlinterCtxt = interCtxts[0]->GetLevel();
 
@@ -624,6 +669,9 @@ void testFullPipelineCompactRealData(
         }
         std::cout << "Done!" << std::endl;
 
+        size_t mockSize = ctxtSize(interCtxts[1]);
+        std::cout << "\nResult ciphertext Size (Mock Senders, S->L): " << mockSize << std::endl;
+
         // Do Logistic Regression
         std::cout << "Do Leader Server Operations" << std::endl;
         auto t1_ls = std::chrono::high_resolution_clock::now();
@@ -633,7 +681,15 @@ void testFullPipelineCompactRealData(
         auto t2_ls = std::chrono::high_resolution_clock::now();
         double tdiff_ls = std::chrono::duration<double>(t2_ls-t1_ls).count();
         std::cout << "Done!" << std::endl;
-        std::cout << "Time Elapsed: " << tdiff_ls << std::endl;        
+        std::cout << "Time Elapsed: " << tdiff_ls << std::endl;    
+
+        auto answer = ret.evalRet;
+        auto flag = ret.isInter;
+
+        size_t ansSize = ctxtSize(answer);
+        size_t flagSize = ctxtSize(flag);
+        std::cout << "\nReturn ciphertext size (Answer, Leader sender, L->S): " << ansSize << std::endl;       
+        std::cout << "\nReturn ciphertext size (Flag, Leader sender, L->S): " << flagSize << std::endl;               
 
     } else {
         std::cout << "ACTUAL run of the protocol for ALL servers." << std::endl;
@@ -720,6 +776,7 @@ void testFullPipelineRealDataChunks(
     std::string paramPath, 
     uint32_t itemLen,
     bool isSim,
+    int scalingMod,
     uint32_t numChunks
 ) {
     std::cout << "<<< " << "TEST A FULL PIPELINE WITH REAL DATA / Chunking " << ">>>" << std::endl;
@@ -727,7 +784,10 @@ void testFullPipelineRealDataChunks(
     FHEParams params;
     params.multiplicativeDepth = 41;
     params.ringDim = 1<<17;
-    params.scalingModSize = 44;
+
+    params.scalingModSize = scalingMod;
+    std::cout << "Scaling mod (optimum=44) size is set to " << params.scalingModSize << std::endl;
+    
     params.firstModSize = 60;
 
     FHEContext ctx = InitFHE(params);
@@ -989,6 +1049,7 @@ void testFullPipelineCompactRealDataChunks(
     std::string paramPath, 
     uint32_t itemLen,
     bool isSim,
+    int scalingMod,
     uint32_t numChunks
 ) {
     std::cout << "<<< " << "TEST A FULL PIPELINE WITH REAL DATA (COMPACT OPTIMIZATION) / Chunking" << " >>>" << std::endl;
@@ -996,7 +1057,10 @@ void testFullPipelineCompactRealDataChunks(
     FHEParams params;
     params.multiplicativeDepth = 41 + itemLen;
     params.ringDim = 1<<17;
-    params.scalingModSize = 44;
+    
+    params.scalingModSize = scalingMod;
+    std::cout << "Scaling mod (optimum=44) size is set to " << params.scalingModSize << std::endl;
+    
     params.firstModSize = 60;
 
     FHEContext ctx = InitFHE(params);

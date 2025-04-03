@@ -7,21 +7,26 @@
 //     return 0;
 // }
 
+
 void printUsage() {
-    std::cerr << "\nUsage: ./main_psmt" << " -DBPath <str>" << " -DBName <str>" << " -isSim <int>" << " -isCompact <int>" << " -numChunks <int>" << " -itemLen <int>\n" ;    
-    // std::cerr << "\nUsage: ./main_psmt" << " -DBPath <str>" << " -DBName <str>" << " -isSim <int>" << " -isCompact <int>" << " -numChunks <int>" << " -isHorizontal <int>\n" ;
+    std::cerr << "\nUsage: ./main_psmt"
+              << " -DBPath <str>"
+              << " -DBName <str>"
+              << " -isSim <int>"
+              << " -isCompact <int>"
+              << " -itemLen <int>"
+              << " -scalingModSize <int> (optional, max 59)\n";
 }
 
-
-int main(int argc, char* argv[])  {
+int main(int argc, char* argv[]) {
     const std::string REQUIRED_FLAGS[] = {
-        "-DBPath", "-DBName", "-isSim", "-isCompact", "-numChunks", "-itemLen" //, "-isHorizontal"
+        "-DBPath", "-DBName", "-isSim", "-isCompact", "-itemLen", "-scalingModSize", "-numChunks"
     };
 
     std::map<std::string, std::string> args;
-    for (int i = 1; i < argc - 1; i+= 2) {
+    for (int i = 1; i < argc - 1; i += 2) {
         std::string key = argv[i];
-        std::string value = argv[i+1];
+        std::string value = argv[i + 1];
 
         if (key.size() > 1 && key[0] == '-') {
             args[key] = value;
@@ -32,7 +37,7 @@ int main(int argc, char* argv[])  {
         }
     }
 
-    for (const auto& flag: REQUIRED_FLAGS) {
+    for (const auto& flag : REQUIRED_FLAGS) {
         if (args.find(flag) == args.end()) {
             std::cerr << "Error: Missing Required flag '" << flag << "'\n";
             printUsage();
@@ -40,14 +45,22 @@ int main(int argc, char* argv[])  {
         }
     }
 
+    // Parse required args
     std::string rootDir = args["-DBPath"];
     std::string DBName = args["-DBName"];
-    bool isSim = true;
-    if (args["-isSim"] == "1") {
-        isSim = true;
-    } else {
-        isSim = false;
+    bool isSim = (args["-isSim"] == "1");
+    bool isCompact = (args["-isCompact"] == "1");
+
+    // Parse optional scalingModSize
+    uint32_t scalingModSize = 59; // Default value
+    if (args.find("-scalingModSize") != args.end()) {
+        scalingModSize = std::stoi(args["-scalingModSize"]);
+        if (scalingModSize > 59) {
+            std::cerr << "Error: -scalingModSize cannot be greater than 59.\n";
+            return 1;
+        }
     }
+
     bool isCompact = true;
     if (args["-isCompact"] == "1") {
         isCompact = true;
@@ -60,8 +73,8 @@ int main(int argc, char* argv[])  {
     // isHorizontal = stoi(args["-isHorizontal"]);    
 
     std::string DBPath = rootDir + DBName + "_prepared.csv";
-    std::string ansPath = rootDir + DBName +"_answer.csv";
-    std::string paramPath = rootDir + DBName +"_params.bin";
+    std::string ansPath = rootDir + DBName + "_answer.csv";
+    std::string paramPath = rootDir + DBName + "_params.bin";
 
 
     uint32_t itemLen = stoi(args["-itemLen"]);
@@ -70,27 +83,20 @@ int main(int argc, char* argv[])  {
     std::cout << "DB Path: " << DBPath << std::endl;
     std::cout << "Answer Path: " << ansPath << std::endl;
     std::cout << "Parameter Path: " << paramPath << std::endl;
-    std::cout << "Item Length (bits): " << actualSize << std::endl;
+    std::cout << "Scaling Mod Size: " << scalingModSize << std::endl;
 
-    // if (isHorizontal) {
-    //     if (numChunks == 0) {
-    //         throw std::runtime_error("numChunks==0 at Horizontal Segmentation is not supported...");
-    //     }
-    //     testFullPipelineCompactRealDataHorizontalChunks(DBPath, ansPath, paramPath, isSim, numChunks);        
-    //     return 0;
-    // }
 
     if (numChunks == 0) {
         if (isCompact) {
-            testFullPipelineCompactRealData(DBPath, ansPath, paramPath, itemLen, isSim);
+            testFullPipelineCompactRealData(DBPath, ansPath, paramPath, itemLen, isSim, scalingModSize);
         } else {
-            testFullPipelineRealData(DBPath, ansPath, paramPath, itemLen, isSim);
+            testFullPipelineRealData(DBPath, ansPath, paramPath, itemLen, isSim, scalingModSize);
         }
     } else {
         if (isCompact) {
-            testFullPipelineCompactRealDataChunks(DBPath, ansPath, paramPath, itemLen, isSim, numChunks);
+            testFullPipelineCompactRealDataChunks(DBPath, ansPath, paramPath, itemLen, isSim, scalingModSize, numChunks);
         } else {
-            testFullPipelineRealDataChunks(DBPath, ansPath, paramPath, itemLen, isSim, numChunks);
+            testFullPipelineRealDataChunks(DBPath, ansPath, paramPath, itemLen, isSim, scalingModSize, numChunks);
         }
     }
 

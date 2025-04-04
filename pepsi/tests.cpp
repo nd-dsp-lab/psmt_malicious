@@ -52,6 +52,8 @@ void testPEPSIProtocol(
 
   std::cout << "STEP 1-1: Setup FHE" << std::endl;
   uint32_t depth = (int)(std::log2(HW))+isEncrypted;
+  std::cout << "PEPSI depth: " << depth << std::endl;
+  //print it
   FHEParamsBFV params;
   params.multiplicativeDepth = depth;
   params.ringDim = 1<<14;
@@ -81,10 +83,16 @@ void testPEPSIProtocol(
   PEPSIDB serverDB = constructPEPSIDB(
     cc, pk, msgVec, bitlen, HW, isEncrypted
   );
-
+  
+  int numCtxtsTotal = serverDB.chunks.size() * bitlen;
+  std::cout << "\n Number of server ctxts: " << numCtxtsTotal << std::endl;
   std::cout << "Step 2: Client Side Computation" << std::endl;
   std::cout << "Step 3: Query Encryption" << std::endl;
   PEPSIQuery query = encryptClientData(cc, pk, 42, bitlen, HW);
+  double serverSingleSize = ctxtSize(query.payload[0]);
+
+  std::cout << "Size of single DB ciphertext: " << (serverSingleSize) / 1000000 << " MB" << std::endl;
+
   size_t querySize = ctxtSize(query.payload[0]) * query.numCtxt;
 
   std::cout << "Step 4: Do Intersection" << std::endl;

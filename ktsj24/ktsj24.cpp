@@ -172,10 +172,9 @@ void EvalFunctionExample() {
               << std::endl;
     CCParams<CryptoContextCKKSRNS> parameters;
 
-
-    //parameters.SetRingDim(1 << 15);
-
-    double L = 2.59;  //2.598076211;
+    // parameters for 20-bit space 
+    --------------------------------
+    double L = 2.59;  
     int n = 9;
     double R = 200;
 
@@ -184,8 +183,25 @@ void EvalFunctionExample() {
     double rho = 2.5;
 
     uint32_t multDepth = 52; 
-    unsigned int poly_approx_deg = 247;  
+    unsigned int poly_approx_deg = 247; 
+    --------------------------------
 
+    /* for 25-bit space
+    --------------------------------
+    double L = 2.59;  
+    int n = 9;
+    double R = 6400;
+
+    size_t j=12;
+    size_t k=3;
+    double rho = 2.7;
+
+    uint32_t multDepth = 62; 
+    unsigned int poly_approx_deg = 247;  
+    --------------------------------
+    */
+
+  
     double low_bound = -R;
     double high_bound = R;
     size_t slots = 65536;

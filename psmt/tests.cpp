@@ -283,7 +283,12 @@ void testFullPipelineRealData(
 ) {
     std::cout << "<<< " << "TEST A FULL PIPELINE WITH REAL DATA" << ">>>" << std::endl;
     FHEParams params;
-    params.multiplicativeDepth = 41;
+    if (itemLen == 1){
+        params.multiplicativeDepth = 41;
+    }
+    else if (itemLen == 2){
+        params.multiplicativeDepth = 42;
+    }
     params.ringDim = 1<<17;
 
 
@@ -548,7 +553,12 @@ void testFullPipelineCompactRealData(
 ) {
     std::cout << "<<< " << "TEST A FULL PIPELINE WITH REAL DATA (COMPACT OPTIMIZATION)" << " >>>" << std::endl;
     FHEParams params;
-    params.multiplicativeDepth = 42;
+    if (itemLen == 1){
+        params.multiplicativeDepth = 42;
+    }
+    else if (itemLen == 2){
+        params.multiplicativeDepth = 43;
+    }
     params.ringDim = 1<<17;
 
 
@@ -808,7 +818,12 @@ void testFullPipelineRealDataChunks(
     std::cout << "<<< " << "TEST A FULL PIPELINE WITH REAL DATA / Chunking " << ">>>" << std::endl;
     std::cout << "# of ciphertext chunks by each sender: " << numChunks << std::endl;
     FHEParams params;
-    params.multiplicativeDepth = 41;
+    if (itemLen == 1){
+        params.multiplicativeDepth = 41;
+    }
+    else if (itemLen == 2){
+        params.multiplicativeDepth = 42;
+    }
     params.ringDim = 1<<17;
 
     params.scalingModSize = scalingMod;

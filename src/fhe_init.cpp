@@ -42,7 +42,7 @@ FHEContext InitFHE(const FHEParams &params) {
     std::cout << "Generating CryptoContext..." << std::endl;
     context.cryptoContext = GenCryptoContext(cryptoParams);
 
-    std::cerr << "\nCKKS parameters :::::::: " << cryptoParams << std::endl;
+    //std::cout << "\nCKKS parameters :::::::: " << cryptoParams << std::endl;
     context.cryptoContext->Enable(PKE);
     context.cryptoContext->Enable(KEYSWITCH);
     context.cryptoContext->Enable(LEVELEDSHE);
@@ -58,7 +58,7 @@ FHEContext InitFHE(const FHEParams &params) {
     std::vector<int32_t> indexList = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -n + 2, -n + 3, n - 1, n - 2, -1, -2, -3, -4, -5}; // depends on the k-value
     context.cryptoContext->EvalRotateKeyGen(context.keyPair.secretKey, indexList);
 
-    std::cout << cryptoParams << std::endl;
+   //std::cout << cryptoParams << std::endl;
 
     return context;
 }

@@ -7,10 +7,9 @@
 #include "../include/fhe_init.h"
 #include "../include/core.h"
 #include "../logreg/utils.h"
+#include "utils.h"
 
 #include <string>
-
-#define MAX_NUM_CORES 48
 
 using namespace lbcrypto;
 

@@ -4,10 +4,9 @@
 #include "openfhe.h"
 #include "../logreg/core.h"
 #include "../include/core.h"
+#include "utils.h"
 
 using namespace lbcrypto;
-
-#define MAX_NUM_CORES 48
 
 typedef struct _EncryptedHorizontalChunk {
     Ciphertext<DCRTPoly> idCtxt;

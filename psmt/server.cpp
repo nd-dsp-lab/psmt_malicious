@@ -244,7 +244,7 @@ Ciphertext<DCRTPoly> compInterChunks (
 
     if (numChunks > 2) {
 
-        std::cout << "\nW/ multi-threading... " << std::endl;
+        std::cout << "\nW/ multi-threading (T=" << MAX_NUM_CORES << ")... " << std::endl;
         #pragma omp parallel for num_threads(MAX_NUM_CORES)
         for (uint32_t i = 0; i < numChunks; i++) {
         vafResultVec[i] = cc->EvalSub(chunks[i].idCtxt, queryCtxt);
@@ -337,7 +337,7 @@ Ciphertext<DCRTPoly> compInterCompactChunks(
 
     if (numChunks > 2) {
 
-        std::cout << "\nW/ multi-threading... " << std::endl;
+        std::cout << "\nW/ multi-threading (T=" << MAX_NUM_CORES << ")... " << std::endl;
         #pragma omp parallel for num_threads(MAX_NUM_CORES)
         for (uint32_t i = 0; i < numChunks; i++) {
         vafResultVec[i] = cc->EvalSub(chunks[i].idCtxt, queryCtxt);

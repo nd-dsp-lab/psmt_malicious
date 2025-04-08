@@ -1213,6 +1213,12 @@ void testFullPipelineCompactRealDataChunks(
         EncryptedDB DBfromFirstServer = constructDB(
             cc, pk, idMsgVec, labMsgVecs[0], 0.0, kappa
         );
+
+        uint32_t numOfTotalCtxts = numChunks * 2;
+
+        std::cout << "Database Size: " << ((double)ctxtSize(DBfromFirstServer.chunks[0].idCtxt) * numOfTotalCtxts)/1000000 << " MB" << std::endl;
+
+        
         std::cout << "Done!" << std::endl;
 
         // Prepare Query Ctxt

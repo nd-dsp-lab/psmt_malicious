@@ -4,12 +4,11 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-#include <vector>
 #include <string>
 #include <iostream>
 
 
+#endif // PSMT_UTILS_
 
 
-
-#endif 
+#define MAX_NUM_CORES 4  // Used during the encryption and VAF operations

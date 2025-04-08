@@ -2,6 +2,8 @@
 #define PSMT_CLIENT_H
 
 #include "openfhe.h"
+#include "utils.h"
+
 using namespace lbcrypto;
 
 Ciphertext<DCRTPoly> encryptQuery(

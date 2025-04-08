@@ -13,6 +13,16 @@
 #include "core.h"
 
 
+size_t ctxtSize(Ciphertext<DCRTPoly>& ctxt) {
+  size_t size = 0;
+  for (auto& element : ctxt->GetElements()) {
+    for (auto& subelements : element.GetAllElements()) {
+      auto length = subelements.GetLength();
+      size += length * sizeof(subelements[0]);
+    }
+  }
+  return size;
+};
 
 int32_t NextPowerOfTwo(int32_t n) {
     if (n < 1) return 1;
@@ -348,7 +358,11 @@ int testFullPipeline(double sigma, double kappa) {
 
     Plaintext queryPlain = cryptoContext->MakeCKKSPackedPlaintext(expandedQuery);
     Ciphertext<DCRTPoly> queryCipher = cryptoContext->Encrypt(queryPlain, publicKey);
+    std::cout << "Query Size: " << ctxtSize(queryCipher)/1000000 << " MB" << std::endl;
 
+    double cipherSize = ctxtSize(encryptedChunks[0]);
+
+    std::cout << "Size of a single DB ciphertext " << cipherSize/1000000 << " MB " << std::endl;
     std::cout << "Successfully encrypted " << encryptedChunks.size() << " ciphertexts." << std::endl;
 
     // ------------------------------------------------------------

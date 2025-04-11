@@ -1,5 +1,5 @@
 # psmt_malicious
-PSMT using CKKS with malicious security.
+Labeled Functional PMT using CKKS with malicious security.
 
 # Build the Project
 

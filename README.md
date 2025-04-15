@@ -1,9 +1,13 @@
-# psmt_malicious
-Labeled Functional PMT using CKKS with malicious security.
+# LF-PMT
+Labeled and Functional Private Membership Test over Distributed Encrypted Datasets 
+
+# Dependencies
+
+Install OpenFHE v1.2.3 via [Link](https://github.com/openfheorg/openfhe-development)
 
 # Build the Project
 
-You can build the project by the following command line.
+You can build the project using the following command line.
 
 ```
 make clean
@@ -13,10 +17,13 @@ cmake -S .. -B .
 make 
 ```
 
-The following two executable programs will be build.
+The following two executable programs will be built.
 
 - `main`: Test for the full pipeline.
 - `main_vaf`: Test for the VAF only.
+
+# Data
+```/data``` folder should contain all the preprocessed datasets for LF-PMT experimental evaluations. Read the readME inside the folder to learn how to generate and pre-process the datasets.
 
 # VAF Parameters
 

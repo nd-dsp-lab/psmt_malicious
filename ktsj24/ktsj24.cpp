@@ -1,4 +1,6 @@
 // For Open Sanctions Dataset hashed into 20-bits (false-postive rate = 1)
+// g++ -std=c++17 -o ktsj24 ktsj24.cpp -DOPENFHE_VERSION=1.0.3 -Wno-parentheses -DMATHBACKEND=4 -Wl,-rpath,/usr/local/lib/ /usr/local/lib/libOPENFHEcore.so /usr/local/lib/libOPENFHEpke.so /usr/local/lib/libOPENFHEpke_static.a /usr/local/lib/libOPENFHEcore_static.a -I /usr/local/include/openfhe/core -I /usr/local/include/openfhe/pke -I /usr/local/include/openfhe/ -lstdc++fs -O3 -fopenmp
+
 
 #include "openfhe.h"
 #include <cmath>
@@ -173,21 +175,21 @@ void EvalFunctionExample() {
     CCParams<CryptoContextCKKSRNS> parameters;
 
     // parameters for 20-bit space 
-    --------------------------------
-    double L = 2.59;  
-    int n = 9;
-    double R = 200;
+    // --------------------------------
+    // double L = 2.59;  
+    // int n = 9;
+    // double R = 200;
 
-    size_t j=2;
-    size_t k=3;
-    double rho = 2.5;
+    // size_t j=2;
+    // size_t k=3;
+    // double rho = 2.5;
 
-    uint32_t multDepth = 52; 
-    unsigned int poly_approx_deg = 247; 
-    --------------------------------
+    // uint32_t multDepth = 52; 
+    // unsigned int poly_approx_deg = 247; 
+    // --------------------------------
 
-    /* for 25-bit space
-    --------------------------------
+    // // for 25-bit space
+    // --------------------------------
     double L = 2.59;  
     int n = 9;
     double R = 6400;
@@ -197,14 +199,15 @@ void EvalFunctionExample() {
     double rho = 2.7;
 
     uint32_t multDepth = 62; 
-    unsigned int poly_approx_deg = 247;  
-    --------------------------------
-    */
+    unsigned int poly_approx_deg = 247; 
+
+    //--------------------------------
+    
 
   
     double low_bound = -R;
     double high_bound = R;
-    size_t slots = 65536;
+    size_t slots = 32768;
 
     parameters.SetSecurityLevel(HEStd_128_classic);
     parameters.SetMultiplicativeDepth(multDepth);
@@ -247,9 +250,10 @@ void EvalFunctionExample() {
               << std::endl;
 
 
-    std::string dbFilename = "../hashed_entity_ids_20.csv";
+    std::string dbFilename = "./hashed_entity_ids_20.csv";
     std::vector<double> chunks = readChunks(dbFilename);    
     std::cout << "Dataset (first 30 values):" << std::endl;
+
     for (size_t i = 0; i < 30 && i < chunks.size(); ++i) {
         std::cout << chunks[i] << " ";
     }
@@ -258,7 +262,7 @@ void EvalFunctionExample() {
     std::cout << "\nSize of database vector: " << chunks.size() << std::endl;
     std::cout << std::endl;
 
-    std::string queryFilename = "../query.csv";
+    std::string queryFilename = "./query.csv";
 
     std::vector<double> query = readChunks(queryFilename);
     if (query.empty()) {
@@ -275,26 +279,23 @@ void EvalFunctionExample() {
     }
     std::cout << std::endl;
 
-    size_t numCiphertexts = (chunks.size() + slots - 1) / slots; // Calculate required ciphertexts
-    std::vector<Ciphertext<DCRTPoly>> encryptedChunks;
+    size_t numCiphertexts = (chunks.size() + slots - 1) / slots;
+    std::vector<Ciphertext<DCRTPoly>> encryptedChunks(numCiphertexts);
 
-    // Define a fallback value to pad out vectors
     double dummyValue = 1000;
 
-     #pragma omp parallel for num_threads(MAX_NUM_CORES)
+    #pragma omp parallel for num_threads(MAX_NUM_CORES)
     for (size_t i = 0; i < numCiphertexts; ++i) {
         size_t startIdx = i * slots;
         size_t endIdx = std::min(startIdx + slots, chunks.size());
         std::vector<double> chunkSegment(chunks.begin() + startIdx, chunks.begin() + endIdx);
         
-        // Pad with 255 if this is the last chunk and not fully filled
         if (chunkSegment.size() < slots) {
             chunkSegment.resize(slots, dummyValue);
         }
         
         Plaintext dbPlain = cc->MakeCKKSPackedPlaintext(chunkSegment);
-        Ciphertext<DCRTPoly> dbCipher = cc->Encrypt(dbPlain, pk);
-        encryptedChunks.push_back(dbCipher);
+        encryptedChunks[i] = cc->Encrypt(dbPlain, pk);  // Direct assignment
     }
 
     Plaintext queryPlain = cc->MakeCKKSPackedPlaintext(expandedQuery);
@@ -311,38 +312,38 @@ void EvalFunctionExample() {
     auto overallStart = std::chrono::high_resolution_clock::now();
 
     #pragma omp parallel for num_threads(MAX_NUM_CORES)
-    for (size_t i = 0; i < 6; ++i) {
+    for (size_t i = 0; i < encryptedChunks.size(); ++i) {
         encryptedChunks[i] = cc->EvalSub(queryCipher, encryptedChunks[i]);
     }
 
     auto derivative_htan_func = [](double x) -> double {  return (1 - tanh(pow(10*x,2))); };
 
     #pragma omp parallel for num_threads(MAX_NUM_CORES)
-    for (size_t i = 0; i < 6; ++i) {
+    for (size_t i = 0; i < encryptedChunks.size(); ++i) {
         encryptedChunks[i] = DEP1(L, R, n, encryptedChunks[i], cc);
     }
 
     #pragma omp parallel for num_threads(MAX_NUM_CORES)
-    for (size_t i = 0; i < 6; ++i) {
+    for (size_t i = 0; i < encryptedChunks.size(); ++i) {
         encryptedChunks[i] = cc->EvalChebyshevFunction(derivative_htan_func, encryptedChunks[i], low_bound, high_bound, poly_approx_deg);
     }
 
     
     //#pragma omp parallel for num_threads(MAX_NUM_CORES)
     for (size_t m = 0; m < j; m++) {
-        for (size_t i = 0; i < 6; ++i) {
+        for (size_t i = 0; i < encryptedChunks.size(); ++i) {
         cc->EvalSquareInPlace(encryptedChunks[i]);
         }
     }
 
     //#pragma omp parallel for num_threads(MAX_NUM_CORES)
-    for (size_t i = 0; i < 6; ++i) {
+    for (size_t i = 0; i < encryptedChunks.size(); ++i) {
         cc->EvalMultInPlace(encryptedChunks[i], rho);
     }
 
     //#pragma omp parallel for num_threads(MAX_NUM_CORES)
     for (size_t m = 0; m < k; m++) {
-        for (size_t i = 0; i < 6; ++i) {
+        for (size_t i = 0; i < encryptedChunks.size(); ++i) {
         cc->EvalSquareInPlace(encryptedChunks[i]);
         }
     }

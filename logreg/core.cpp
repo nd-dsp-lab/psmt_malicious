@@ -124,3 +124,92 @@ Ciphertext<DCRTPoly> logRegEvalCompact(
 
     return ret;
 }
+
+// See Algorithm 1 of https://eprint.iacr.org/2024/1366.pdf
+std::vector<double> makeKVals(
+    double alpha, double prec
+) {
+    std::vector<double> Kval;
+    double cond = std::pow(2, -alpha);
+    double k;
+    while (1 - prec > cond) {
+        // f(x) = x(3-x)^2/4
+        k = 3 * (1 - std::pow(prec, 0.5)) / (1 - std::pow(prec, 1.5));
+        Kval.push_back(k);
+        prec = k * std::pow(3 - k, 2) / 4.0;
+    }
+    return Kval;
+}
+
+// Inverse Sqrt Algorithm
+// See Algorithm 4 of https://eprint.iacr.org/2024/1366.pdf
+Ciphertext<DCRTPoly> invSqrt(
+    CryptoContext<DCRTPoly> cc,
+    Ciphertext<DCRTPoly> ctxt,
+    double alpha,
+    double prec,
+    double B
+) {
+    Ciphertext<DCRTPoly> x = ctxt->Clone();
+    cc->EvalMultInPlace(x, 1./B);
+
+    Ciphertext<DCRTPoly> a = x->Clone();
+    Ciphertext<DCRTPoly> b;
+    Ciphertext<DCRTPoly> ka, a2;
+    double k, ksqrtk;
+    double cond = std::pow(2, -alpha);
+
+    std::vector<double> Kvals = makeKVals(alpha, prec);
+
+    for (uint32_t i = 0; i < Kvals.size(); i++) {
+        k = Kvals[i];
+        ksqrtk = std::pow(k, 1.5);
+        ka = cc->EvalSub(3/k, a);
+        if (i == 0) {
+            b = cc->EvalMult(ksqrtk / 2.0, ka);
+        } else {
+            cc->EvalMultInPlace(b, ksqrtk/2.0);
+            b = cc->EvalMult(b, ka);
+        }
+        cc->EvalSquareInPlace(ka);
+        cc->EvalMultInPlace(a, ksqrtk * ksqrtk  / 4.0);
+        a = cc->EvalMult(a, ka);
+
+        prec = k * std::pow( 3 - k , 2.0) / 4.0;
+
+        if (1 - prec < cond) {
+            break;
+        }        
+    }
+    cc->EvalMultInPlace(b, std::pow(B, 0.5));
+    return b;
+}
+
+// One Sample T-TEST from invSqrt
+Ciphertext<DCRTPoly> oneSampleTTestCompact(
+    CryptoContext<DCRTPoly> cc,
+    Ciphertext<DCRTPoly> ctxt,
+    uint32_t ringDim,
+    uint32_t rotRange,
+    double mu,
+    double alpha, double prec, double B
+) {
+    Ciphertext<DCRTPoly> ret = ctxt->Clone();
+    Ciphertext<DCRTPoly> _tmp;
+    for (uint32_t i = 1; i < ringDim; i *= 2) {
+        _tmp = cc->EvalRotate(ret, i);
+        cc->EvalAddInPlace(ret, _tmp);
+    }    
+    Ciphertext<DCRTPoly> smu = cc->EvalMult(ret, 1.0/rotRange);
+    Ciphertext<DCRTPoly> sstd = cc->EvalSub(ctxt, smu);
+    cc->EvalSquareInPlace(sstd);
+    for (uint32_t i = 1; i < ringDim; i *= 2) {
+        _tmp = cc->EvalRotate(sstd, i);
+        cc->EvalAddInPlace(sstd, _tmp);
+    }        
+    sstd = cc->EvalMult(sstd, 1.0/((rotRange - 1) * rotRange));
+    sstd = invSqrt(cc, sstd, alpha, prec, B);
+    Ciphertext<DCRTPoly> T = cc->EvalSub(smu, mu);
+    T = cc->EvalMult(T, sstd);
+    return T;
+}

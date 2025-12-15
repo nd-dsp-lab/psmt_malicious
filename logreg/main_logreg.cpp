@@ -1,6 +1,8 @@
 #include "tests.h"
 
 int main() {
-    testEncryptedInference();
+    // testEncryptedInference();
+    // testInvSqrt();
+    testTTest();
     return 0;
 }

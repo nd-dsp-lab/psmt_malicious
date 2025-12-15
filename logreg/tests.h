@@ -7,5 +7,7 @@
 
 void testLogReg();
 void testEncryptedInference();
+void testInvSqrt();
+void testTTest();
 
 #endif 

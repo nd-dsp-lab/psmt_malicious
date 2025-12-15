@@ -16,7 +16,6 @@ std::vector<double> genDataNormal(
     return retVec;
 }
 
-
 void testLogReg() {
     std::cout << "<<< " << "Logistic Regression TEST" << ">>>" << std::endl;
     FHEParams params;
@@ -154,4 +153,109 @@ void testEncryptedInference() {
     std::cout << "Answer (50 values) "  << std::endl;
     std::cout << std::vector<uint32_t>(DB.answer.begin(), DB.answer.begin() + 50) << std::endl;
 
+}
+
+
+// Test for Inv Sqrt
+void testInvSqrt() {
+    std::cout << "<<< " << "Inverse Sqrt TEST" << ">>>" << std::endl;
+    FHEParams params;
+    params.multiplicativeDepth = 15;
+    params.ringDim = 1<<17;
+    params.scalingModSize = 50;
+    params.firstModSize = 59;
+
+    FHEContext ctx = InitFHE(params);
+    auto cc = ctx.cryptoContext; 
+    auto pk = ctx.keyPair.publicKey;
+    auto sk = ctx.keyPair.secretKey;
+
+    // Prepare Sqrt Values
+
+    double alpha = 10.0;
+    double prec = 0.001;
+
+    std::vector<double> Kvals = makeKVals(alpha, prec);
+    std::cout << "REQ Depth?: " << 2 * Kvals.size() << std::endl;
+
+    std::vector<double> msgVec(params.ringDim / 2, 12.0);
+
+    Plaintext _ptxt = cc->MakeCKKSPackedPlaintext(msgVec);
+    Ciphertext<DCRTPoly> ctxt = cc->Encrypt(_ptxt, pk);
+    auto retCtxt = invSqrt(cc, ctxt, alpha, prec, 20.0);
+    Plaintext retPtxt;
+    cc->Decrypt(retCtxt, sk, &retPtxt);
+    auto retVal = retPtxt->GetRealPackedValue();
+
+    std::cout << std::vector<double>(retVal.begin(), retVal.begin() + 20)
+    << std::endl;
+}
+
+// We have some issues on this test code...
+void testTTest() {
+    std::cout << "<<< " << "Inverse Sqrt TEST" << ">>>" << std::endl;
+    FHEParams params;
+    params.multiplicativeDepth = 20;
+    params.ringDim = 1<<17;
+    params.scalingModSize = 50;
+    params.firstModSize = 59;
+
+    FHEContext ctx = InitFHE(params);
+    auto cc = ctx.cryptoContext; 
+    auto pk = ctx.keyPair.publicKey;
+    auto sk = ctx.keyPair.secretKey;
+
+    std::vector<int32_t> rotIdxs;
+    for (int32_t i = 1; i < (int32_t)(params.ringDim); i = i * 2) {
+        rotIdxs.push_back(i);
+    }
+
+    cc->EvalRotateKeyGen(sk, rotIdxs);
+
+    // Prepare Sqrt Values
+
+    double alpha = 10.0;
+    double prec = 0.01;
+    double B = 1;
+
+    double mu = -0.5;
+    uint32_t rotRange = 256;
+    std::vector<double> data = genDataNormal(rotRange);
+
+    std::vector<double> msgVec(params.ringDim / 2, 0.0);
+    for (uint32_t i = 0; i < rotRange; i++) {
+        msgVec[i] = data[i];
+    }
+
+    Plaintext _ptxt = cc->MakeCKKSPackedPlaintext(msgVec);
+    Ciphertext<DCRTPoly> ctxt = cc->Encrypt(_ptxt, pk);
+    auto retCtxt = oneSampleTTestCompact(
+        cc, ctxt, 
+        params.ringDim,
+        rotRange,
+        mu,
+        alpha, prec, B
+    );
+    Plaintext retPtxt;
+    cc->Decrypt(retCtxt, sk, &retPtxt);
+    auto retVal = retPtxt->GetRealPackedValue();
+
+    // Actual T-Test
+    double sum = 0.0;
+    for (uint32_t i = 0; i < rotRange; i++) {
+        sum += data[i];
+    }
+    sum = sum / rotRange;
+    double std = 0.0;
+    for (uint32_t i = 0; i < rotRange; i++) {
+        std += std::pow(data[i] - sum, 2.0);
+    }
+    std = std::pow(std / (rotRange*(rotRange - 1)), 0.5);
+    double T = (sum - mu) / std;
+
+
+    std::cout << std::vector<double>(retVal.begin(), retVal.begin() + 20)
+    << std::endl;
+
+    std::cout << T << std::endl;
 }

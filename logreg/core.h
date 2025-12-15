@@ -57,5 +57,26 @@ Ciphertext<DCRTPoly> logRegEvalCompact(
     Ciphertext<DCRTPoly> ctxt
 );
 
+std::vector<double> makeKVals(
+    double alpha, double prec
+);
+
+Ciphertext<DCRTPoly> invSqrt(
+    CryptoContext<DCRTPoly> cc,
+    Ciphertext<DCRTPoly> ctxt,
+    double alpha,
+    double prec,
+    double B
+);
+
+// One Sample T-TEST from invSqrt
+Ciphertext<DCRTPoly> oneSampleTTestCompact(
+    CryptoContext<DCRTPoly> cc,
+    Ciphertext<DCRTPoly> ctxt,
+    uint32_t ringDim,
+    uint32_t rotRange,
+    double mu,
+    double alpha, double prec, double B
+);
 
 #endif

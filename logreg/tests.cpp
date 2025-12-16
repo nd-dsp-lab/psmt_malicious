@@ -1,20 +1,42 @@
 #include "tests.h"
 
-std::vector<double> genDataNormal(
-    uint32_t numItems
-) {
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::normal_distribution<double> dist(0, 1);
-
+// instantiating the random engine locally for each thread
+std::vector<double> genDataNormal(uint32_t numItems) {
     std::vector<double> retVec(numItems);
 
-    #pragma omp parallel for
-    for (uint32_t i = 0; i < numItems; i++) {
-        retVec[i] = dist(gen);
+    // Enter a parallel region first
+    #pragma omp parallel 
+    {
+        // Each thread gets its own seed and generator
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::normal_distribution<double> dist(0, 1);
+
+        // Distribute the loop iterations among threads
+        #pragma omp for
+        for (uint32_t i = 0; i < numItems; i++) {
+            retVec[i] = dist(gen);
+        }
     }
     return retVec;
 }
+
+// // this function is not thread safe
+// std::vector<double> genDataNormal(
+//     uint32_t numItems
+// ) {
+//     std::random_device rd;
+//     std::mt19937 gen(rd());
+//     std::normal_distribution<double> dist(0, 1);
+
+//     std::vector<double> retVec(numItems);
+
+//     #pragma omp parallel for
+//     for (uint32_t i = 0; i < numItems; i++) {
+//         retVec[i] = dist(gen);
+//     }
+//     return retVec;
+// }
 
 void testLogReg() {
     std::cout << "<<< " << "Logistic Regression TEST" << ">>>" << std::endl;
@@ -160,7 +182,7 @@ void testEncryptedInference() {
 void testInvSqrt() {
     std::cout << "<<< " << "Inverse Sqrt TEST" << ">>>" << std::endl;
     FHEParams params;
-    params.multiplicativeDepth = 15;
+    params.multiplicativeDepth = 17;
     params.ringDim = 1<<17;
     params.scalingModSize = 50;
     params.firstModSize = 59;
@@ -173,7 +195,7 @@ void testInvSqrt() {
     // Prepare Sqrt Values
 
     double alpha = 10.0;
-    double prec = 0.001;
+    double prec = 1e-4;
 
     std::vector<double> Kvals = makeKVals(alpha, prec);
     std::cout << "REQ Depth?: " << 2 * Kvals.size() << std::endl;
@@ -182,6 +204,7 @@ void testInvSqrt() {
 
     Plaintext _ptxt = cc->MakeCKKSPackedPlaintext(msgVec);
     Ciphertext<DCRTPoly> ctxt = cc->Encrypt(_ptxt, pk);
+
     auto retCtxt = invSqrt(cc, ctxt, alpha, prec, 20.0);
     Plaintext retPtxt;
     cc->Decrypt(retCtxt, sk, &retPtxt);
@@ -216,7 +239,7 @@ void testTTest() {
 
     double alpha = 10.0;
     double prec = 0.01;
-    double B = 1;
+    double B = 0.02;
 
     double mu = -0.5;
     uint32_t rotRange = 256;
@@ -254,8 +277,8 @@ void testTTest() {
     double T = (sum - mu) / std;
 
 
-    std::cout << std::vector<double>(retVal.begin(), retVal.begin() + 20)
+    std::cout << "Decrypted Result: " << std::vector<double>(retVal.begin(), retVal.begin() + 20)
     << std::endl;
 
-    std::cout << T << std::endl;
+    std::cout << "Ground Truth: " << T << std::endl;
 }

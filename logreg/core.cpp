@@ -181,11 +181,14 @@ Ciphertext<DCRTPoly> invSqrt(
             break;
         }        
     }
-    cc->EvalMultInPlace(b, std::pow(B, 0.5));
+
+    // FIX: Multiply by 1/sqrt(B), not sqrt(B)
+    cc->EvalMultInPlace(b, 1 / std::pow(B, 0.5));
     return b;
 }
 
 // One Sample T-TEST from invSqrt
+
 Ciphertext<DCRTPoly> oneSampleTTestCompact(
     CryptoContext<DCRTPoly> cc,
     Ciphertext<DCRTPoly> ctxt,
@@ -194,22 +197,48 @@ Ciphertext<DCRTPoly> oneSampleTTestCompact(
     double mu,
     double alpha, double prec, double B
 ) {
+    // Calculate Sum (Mean)
     Ciphertext<DCRTPoly> ret = ctxt->Clone();
     Ciphertext<DCRTPoly> _tmp;
-    for (uint32_t i = 1; i < ringDim; i *= 2) {
+    
+    // RingDim = N, slots are N/2. We sum up to rotation N/4.
+    for (uint32_t i = 1; i < ringDim / 2; i *= 2) {
         _tmp = cc->EvalRotate(ret, i);
         cc->EvalAddInPlace(ret, _tmp);
     }    
+    
+    // Calculate Mean
     Ciphertext<DCRTPoly> smu = cc->EvalMult(ret, 1.0/rotRange);
+
     Ciphertext<DCRTPoly> sstd = cc->EvalSub(ctxt, smu);
+
+    // We must zero out the "empty" slots (index 256 to 65535)
+    // Otherwise, (0 - mu)^2 = mu^2 is added to the variance ~65,000 times.
+    std::vector<double> maskVec(ringDim / 2, 0.0);
+    for (uint32_t j = 0; j < rotRange; j++) {
+        maskVec[j] = 1.0;
+    }
+    Plaintext mask = cc->MakeCKKSPackedPlaintext(maskVec);
+    sstd = cc->EvalMult(sstd, mask); 
+
     cc->EvalSquareInPlace(sstd);
-    for (uint32_t i = 1; i < ringDim; i *= 2) {
+
+    // Sum the squared differences: Loop must stop BEFORE ringDim/2.
+    for (uint32_t i = 1; i < ringDim / 2; i *= 2) {
         _tmp = cc->EvalRotate(sstd, i);
         cc->EvalAddInPlace(sstd, _tmp);
     }        
+
+    // Scale by 1/(n*(n-1)) to get Standard Error Squared
+    // (This matches the t-test denominator s^2 / n)
     sstd = cc->EvalMult(sstd, 1.0/((rotRange - 1) * rotRange));
+
+
     sstd = invSqrt(cc, sstd, alpha, prec, B);
+
     Ciphertext<DCRTPoly> T = cc->EvalSub(smu, mu);
     T = cc->EvalMult(T, sstd);
+
     return T;
 }
+

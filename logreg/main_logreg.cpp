@@ -2,7 +2,7 @@
 
 int main() {
     // testEncryptedInference();
-    // testInvSqrt();
+    testInvSqrt();
     testTTest();
     return 0;
 }

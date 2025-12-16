@@ -216,11 +216,11 @@ void testInvSqrt() {
 
 // We have some issues on this test code...
 void testTTest() {
-    std::cout << "<<< " << "Inverse Sqrt TEST" << ">>>" << std::endl;
+    std::cout << "<<< " << "One-sided T-TEST" << ">>>" << std::endl;
     FHEParams params;
-    params.multiplicativeDepth = 20;
+    params.multiplicativeDepth = 17;
     params.ringDim = 1<<17;
-    params.scalingModSize = 50;
+    params.scalingModSize = 35;
     params.firstModSize = 59;
 
     FHEContext ctx = InitFHE(params);
@@ -235,13 +235,14 @@ void testTTest() {
 
     cc->EvalRotateKeyGen(sk, rotIdxs);
 
-    // Prepare Sqrt Values
-
+    // Prepare Params for invSqrt
     double alpha = 10.0;
     double prec = 0.01;
     double B = 0.02;
 
+    // Null Hyphothesis: The mean of the unknown distribution is -0.5
     double mu = -0.5;
+
     uint32_t rotRange = 256;
     std::vector<double> data = genDataNormal(rotRange);
 
@@ -256,7 +257,7 @@ void testTTest() {
     // 1. Start Timer
     auto start = std::chrono::high_resolution_clock::now();
 
-    auto retCtxt = oneSampleTTestCompact(
+    auto retCtxt = oneSidedTTestCompact(
         cc, ctxt, 
         params.ringDim,
         rotRange,
@@ -267,6 +268,8 @@ void testTTest() {
     // 2. Stop Timer
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
+
+    std::cout << "CTXT Level: " << retCtxt->GetLevel() << std::endl;
 
     Plaintext retPtxt;
     cc->Decrypt(retCtxt, sk, &retPtxt);
@@ -286,6 +289,7 @@ void testTTest() {
     double T = (sum - mu) / std;
 
 
+    // We can reject the null hyphothesis if T >> 1.
     std::cout << "Decrypted Result: " << retVal << std::endl;
 
     std::cout << "Ground Truth: " << T << std::endl;

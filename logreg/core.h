@@ -70,7 +70,7 @@ Ciphertext<DCRTPoly> invSqrt(
 );
 
 // One Sample T-TEST from invSqrt
-Ciphertext<DCRTPoly> oneSampleTTestCompact(
+Ciphertext<DCRTPoly> oneSidedTTestCompact(
     CryptoContext<DCRTPoly> cc,
     Ciphertext<DCRTPoly> ctxt,
     uint32_t ringDim,

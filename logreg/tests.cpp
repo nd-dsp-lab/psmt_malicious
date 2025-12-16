@@ -252,6 +252,10 @@ void testTTest() {
 
     Plaintext _ptxt = cc->MakeCKKSPackedPlaintext(msgVec);
     Ciphertext<DCRTPoly> ctxt = cc->Encrypt(_ptxt, pk);
+
+    // 1. Start Timer
+    auto start = std::chrono::high_resolution_clock::now();
+
     auto retCtxt = oneSampleTTestCompact(
         cc, ctxt, 
         params.ringDim,
@@ -259,9 +263,14 @@ void testTTest() {
         mu,
         alpha, prec, B
     );
+
+    // 2. Stop Timer
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+
     Plaintext retPtxt;
     cc->Decrypt(retCtxt, sk, &retPtxt);
-    auto retVal = retPtxt->GetRealPackedValue();
+    auto retVal = retPtxt->GetRealPackedValue()[0]; // Get the first slot only
 
     // Actual T-Test
     double sum = 0.0;
@@ -277,8 +286,32 @@ void testTTest() {
     double T = (sum - mu) / std;
 
 
-    std::cout << "Decrypted Result: " << std::vector<double>(retVal.begin(), retVal.begin() + 20)
-    << std::endl;
+    std::cout << "Decrypted Result: " << retVal << std::endl;
 
     std::cout << "Ground Truth: " << T << std::endl;
+
+    // 3. Calculate Precision (Relative Error)
+double error = std::abs(retVal - T); // Absolute Error
+double relError = std::abs(error / T); // Relative Error in %
+
+double bitPrecision = 0.0;
+if (relError > 1e-20) { 
+    bitPrecision = -std::log2(relError);
+} else {
+    // Handle perfect match (avoid log(0))
+    bitPrecision = 52.0; // Max bits for standard double
+}
+
+// 4. Print Results
+std::cout << std::endl;
+std::cout << "------------------------------------------------" << std::endl;
+std::cout << "BENCHMARK RESULTS" << std::endl;
+std::cout << "------------------------------------------------" << std::endl;
+std::cout << "Latency   : " << elapsed.count() << " seconds" << std::endl;
+std::cout << "FHE Value : " << retVal << std::endl;
+std::cout << "True Value: " << T << std::endl;
+std::cout << "Abs Error : " << error << std::endl;
+std::cout << "Precision : " << relError * 100.0 << "% error" << std::endl;
+std::cout << "Bit Precision: " << bitPrecision << " bits" << std::endl;
+std::cout << "------------------------------------------------" << std::endl;
 }
